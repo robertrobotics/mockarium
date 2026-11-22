@@ -6,6 +6,7 @@ import {
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import type { ExecutionEvent, MockServer } from '../shared/contracts'
 import { AppDatabase } from './database'
+import { registerDatabaseTools } from './database-service'
 import { registerEmailTools } from './email-service'
 
 interface RunningServer {
@@ -27,17 +28,32 @@ export class McpRuntime {
     workspaceId: string,
     serverId: string
   ): Promise<MockServer> {
-    const storedServer = this.database.getEmailServer(workspaceId)
-    if (!storedServer || storedServer.id !== serverId) {
+    const storedServer = this.database.getMockServer(workspaceId, serverId)
+    if (!storedServer || storedServer.type !== 'email') {
       throw new Error('Email mock server was not found in this workspace.')
     }
+    return this.startMockServer(workspaceId, serverId)
+  }
 
+  async startMockServer(
+    workspaceId: string,
+    serverId: string
+  ): Promise<MockServer> {
+    const storedServer = this.database.getMockServer(workspaceId, serverId)
+    if (!storedServer)
+      throw new Error('Mock server was not found in this workspace.')
     const existing = this.running.get(serverId)
     if (existing) return this.asMockServer(storedServer, existing.endpoint)
 
     const sessions = new Set<() => Promise<void>>()
     const httpServer = createServer((request, response) => {
-      void this.handleRequest(request, response, workspaceId, sessions)
+      void this.handleRequest(
+        request,
+        response,
+        workspaceId,
+        storedServer.type,
+        sessions
+      )
     })
 
     const address = await new Promise<{ address: string; port: number }>(
@@ -68,10 +84,20 @@ export class McpRuntime {
     workspaceId: string,
     serverId: string
   ): Promise<MockServer> {
-    const storedServer = this.database.getEmailServer(workspaceId)
-    if (!storedServer || storedServer.id !== serverId) {
+    const storedServer = this.database.getMockServer(workspaceId, serverId)
+    if (!storedServer || storedServer.type !== 'email') {
       throw new Error('Email mock server was not found in this workspace.')
     }
+    return this.stopMockServer(workspaceId, serverId)
+  }
+
+  async stopMockServer(
+    workspaceId: string,
+    serverId: string
+  ): Promise<MockServer> {
+    const storedServer = this.database.getMockServer(workspaceId, serverId)
+    if (!storedServer)
+      throw new Error('Mock server was not found in this workspace.')
     const active = this.running.get(serverId)
     if (active) {
       if (active.workspaceId !== workspaceId)
@@ -92,20 +118,20 @@ export class McpRuntime {
       ([, active]) => active.workspaceId === workspaceId
     )
     await Promise.all(
-      servers.map(([serverId]) => this.stopEmailServer(workspaceId, serverId))
+      servers.map(([serverId]) => this.stopMockServer(workspaceId, serverId))
     )
   }
 
   async stopAll(): Promise<void> {
     await Promise.all(
       [...this.running.entries()].map(([serverId, active]) =>
-        this.stopEmailServer(active.workspaceId, serverId)
+        this.stopMockServer(active.workspaceId, serverId)
       )
     )
   }
 
   getServer(workspaceId: string, serverId: string): MockServer | null {
-    const storedServer = this.database.getEmailServer(workspaceId)
+    const storedServer = this.database.getMockServer(workspaceId, serverId)
     if (!storedServer || storedServer.id !== serverId) return null
     const active = this.running.get(serverId)
     return this.asMockServer(storedServer, active?.endpoint ?? null)
@@ -121,6 +147,7 @@ export class McpRuntime {
     request: IncomingMessage,
     response: import('node:http').ServerResponse,
     workspaceId: string,
+    serverType: MockServer['type'],
     sessions: Set<() => Promise<void>>
   ): Promise<void> {
     if (request.url !== '/mcp') {
@@ -136,11 +163,14 @@ export class McpRuntime {
       return
     }
     const transport = new StreamableHTTPServerTransport()
-    const mcpServer = registerEmailTools(
-      this.database,
-      workspaceId,
-      this.onExecutionEvent
-    )
+    const mcpServer =
+      serverType === 'email'
+        ? registerEmailTools(this.database, workspaceId, this.onExecutionEvent)
+        : registerDatabaseTools(
+            this.database,
+            workspaceId,
+            this.onExecutionEvent
+          )
     let closePromise: Promise<void> | null = null
     const closeSession = (): Promise<void> => {
       if (!closePromise) {

@@ -3,17 +3,17 @@
 ## Milestone 1: working foundation
 
 - Secure Electron desktop shell and local workspaces.
-- Stateful Email MCP mock with reset.
+- Stateful, customizable Email MCP mock with editable messages, folders, contacts, and mailbox identity.
+- Visual Database Studio with an editable relational model, sample business data, and validated MCP record operations.
 - Streamable HTTP localhost endpoint.
 - Live inspector fed by real tool executions.
 - Tests, setup documentation, and CI.
 
 ## Later milestones
 
-1. Database mock with safe structured query tools and isolated state.
-2. Virtual File Storage mock with traversal-safe paths.
-3. Visual custom mock server and tool builder.
-4. Scenario definitions, deterministic assertions, and run comparisons.
-5. Additional connectors and optional agent-runner adapters.
+1. Virtual File Storage mock with traversal-safe paths.
+2. Visual custom mock-server and tool builder.
+3. Scenario definitions, deterministic assertions, and run comparisons.
+4. Additional connectors and optional agent-runner adapters.
 
 Later work should preserve local-first operation, explicit mock boundaries, and observability of actual tool calls.

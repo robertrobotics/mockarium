@@ -3,11 +3,6 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { ExecutionEvent } from '../shared/contracts'
 import { AppDatabase } from './database'
 
-const localSender = {
-  name: 'Alex Morgan',
-  email: 'alex@example.test'
-}
-
 type ToolArgs = Record<string, unknown>
 type ToolResult = {
   content: Array<{ type: 'text'; text: string }>
@@ -62,6 +57,7 @@ export function registerEmailTools(
   onEvent: (event: ExecutionEvent) => void
 ) {
   const server = new McpServer({ name: 'mockarium-email', version: '0.1.0' })
+  const localSender = () => database.getEmailProfile(workspaceId)
 
   const instrument =
     <T extends ToolArgs>(
@@ -131,21 +127,22 @@ export function registerEmailTools(
     'send_email',
     {
       description:
-        'Send a simulated email. The message is added to the mock Sent folder.',
+        'Send a simulated email from the configured mailbox identity. The message is added to the mock Sent folder.',
       inputSchema: sendEmailSchema
     },
-    instrument('send_email', ({ to, subject, body }) =>
-      database.addEmail(workspaceId, {
+    instrument('send_email', ({ to, subject, body }) => {
+      const sender = localSender()
+      return database.addEmail(workspaceId, {
         folder: 'Sent',
-        fromName: localSender.name,
-        fromEmail: localSender.email,
+        fromName: sender.name,
+        fromEmail: sender.email,
         toEmail: to,
         subject,
         body,
         sentAt: new Date().toISOString(),
         parentEmailId: null
       })
-    )
+    })
   )
 
   server.registerTool(
@@ -158,10 +155,11 @@ export function registerEmailTools(
       const original = database.getEmail(workspaceId, email_id)
       if (!original)
         throw new Error(`No email was found with id "${email_id}".`)
+      const sender = localSender()
       return database.addEmail(workspaceId, {
         folder: 'Sent',
-        fromName: localSender.name,
-        fromEmail: localSender.email,
+        fromName: sender.name,
+        fromEmail: sender.email,
         toEmail: original.fromEmail,
         subject: original.subject.startsWith('Re: ')
           ? original.subject
@@ -179,18 +177,19 @@ export function registerEmailTools(
       description: 'Create a simulated email draft without sending it.',
       inputSchema: draftSchema
     },
-    instrument('create_draft', ({ to, subject, body }) =>
-      database.addEmail(workspaceId, {
+    instrument('create_draft', ({ to, subject, body }) => {
+      const sender = localSender()
+      return database.addEmail(workspaceId, {
         folder: 'Drafts',
-        fromName: localSender.name,
-        fromEmail: localSender.email,
+        fromName: sender.name,
+        fromEmail: sender.email,
         toEmail: to,
         subject,
         body,
         sentAt: new Date().toISOString(),
         parentEmailId: null
       })
-    )
+    })
   )
 
   server.registerTool(

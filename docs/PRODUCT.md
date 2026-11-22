@@ -4,7 +4,7 @@ Mockarium is a local-first desktop application for testing AI agents against sim
 
 ## First release
 
-The initial vertical slice provides workspaces, a stateful Email mock MCP server, a real-time execution inspector, and resettable local data. The Email server starts only on loopback and never connects to a real email provider. The first release is intended for manual testing with external MCP clients; it does not build or host an AI agent.
+The first release provides workspaces, a customizable Email mock, a visual Database Studio with an editable relational model, and a real-time execution inspector. Email Studio configures the mailbox identity, messages, folders, and contacts that an agent can discover and use. Both MCP servers start only on loopback and never connect to production services. The Database Studio uses safe, validated record operations instead of exposing SQL. The app is intended for manual testing with external MCP clients; it does not build or host an AI agent.
 
 ## Product principles
 
@@ -16,8 +16,8 @@ The initial vertical slice provides workspaces, a stateful Email mock MCP server
 
 ## Initial users and workflow
 
-Developers using MCP-based agents can create a workspace, start the Email server, copy its MCP endpoint into a compatible client, exercise search and send operations, inspect the real request and response, and reset the mock inbox.
+People using MCP-based agents can create a workspace, shape sample business data in Database Studio, customize an email mailbox in Email Studio, connect an agent to the local MCP endpoint, inspect the real request and response, and restore starter mock data.
 
 ## Roadmap boundaries
 
-Database and file-storage connectors, a custom tool builder, and scenario testing are future milestones, not features of the initial vertical slice.
+File Storage, a custom mock-server builder, and scenario testing remain future milestones.

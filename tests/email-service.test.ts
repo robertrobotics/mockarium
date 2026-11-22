@@ -102,4 +102,60 @@ describe('Email mock state', () => {
     expect(reopened.listEmails(workspace.id, 'Inbox')).toHaveLength(3)
     reopened.close()
   })
+
+  it('customizes mailbox identity, messages, folders, and contacts until reset', () => {
+    const database = createDatabase()
+    const workspace = database.createWorkspace('Custom mailbox')
+    database.addEmailServer(workspace.id)
+
+    const profile = database.saveEmailProfile(workspace.id, {
+      name: 'Taylor Quinn',
+      email: 'taylor@example.test'
+    })
+    expect(database.getEmailProfile(workspace.id)).toEqual(profile)
+
+    const folders = database.addEmailFolder(workspace.id, 'Project Apollo')
+    expect(folders).toContain('Project Apollo')
+    const contact = {
+      name: 'Casey Rivera',
+      email: 'casey@example.test',
+      company: 'Orbital Works'
+    }
+    expect(
+      database.saveEmailContact(workspace.id, null, contact)
+    ).toContainEqual(contact)
+
+    const message = database.saveEmail(workspace.id, null, {
+      folder: 'Project Apollo',
+      fromName: contact.name,
+      fromEmail: contact.email,
+      toEmail: profile.email,
+      subject: 'Launch checklist',
+      body: 'Please review the final checklist.',
+      sentAt: new Date().toISOString(),
+      parentEmailId: null
+    })
+    expect(database.listEmails(workspace.id, 'Project Apollo')).toContainEqual(
+      message
+    )
+    expect(() =>
+      database.deleteEmailFolder(workspace.id, 'Project Apollo')
+    ).toThrow('Move or delete the messages in this folder first.')
+
+    database.deleteEmail(workspace.id, message.id)
+    expect(
+      database.deleteEmailFolder(workspace.id, 'Project Apollo')
+    ).not.toContain('Project Apollo')
+    database.resetEmailState(workspace.id)
+
+    expect(database.getEmailProfile(workspace.id)).toEqual({
+      name: 'Alex Morgan',
+      email: 'alex@example.test'
+    })
+    expect(database.listContacts(workspace.id, undefined)).not.toContainEqual(
+      contact
+    )
+    expect(database.listEmails(workspace.id, 'Inbox')).toHaveLength(3)
+    database.close()
+  })
 })

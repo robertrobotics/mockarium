@@ -14,6 +14,7 @@ import {
   CircleHelp,
   Clock3,
   Copy,
+  Database,
   Ellipsis,
   ExternalLink,
   FileText,
@@ -39,17 +40,21 @@ import {
   Zap
 } from 'lucide-react'
 import type {
+  DatabaseModel,
   EmailMessage,
   ExecutionEvent,
   InitialState,
   MockServer,
   Workspace
 } from '../../shared/contracts'
+import { DatabaseStudio } from './DatabaseStudio'
+import { EmailStudio } from './EmailStudio'
 
 type Page =
   | 'Overview'
   | 'Agents'
-  | 'Mock Servers'
+  | 'Email Studio'
+  | 'Database Studio'
   | 'Scenarios'
   | 'Live Inspector'
   | 'Test Runs'
@@ -63,7 +68,8 @@ const navigation: Array<{
 }> = [
   { label: 'Overview', icon: LayoutDashboard, section: 'Workspace' },
   { label: 'Agents', icon: Zap, section: 'Workspace' },
-  { label: 'Mock Servers', icon: Server, section: 'Workspace' },
+  { label: 'Email Studio', icon: Mail, section: 'Workspace' },
+  { label: 'Database Studio', icon: Database, section: 'Workspace' },
   { label: 'Scenarios', icon: FileText, section: 'Testing' },
   { label: 'Live Inspector', icon: Activity, section: 'Testing' },
   { label: 'Test Runs', icon: Gauge, section: 'Testing' },
@@ -101,6 +107,7 @@ function App() {
   const [folder, setFolder] = useState('Inbox')
   const [events, setEvents] = useState<ExecutionEvent[]>([])
   const [emails, setEmails] = useState<EmailMessage[]>([])
+  const [databaseRevision, setDatabaseRevision] = useState(0)
   const [search, setSearch] = useState('')
   const [toolFilter, setToolFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -123,7 +130,13 @@ function App() {
     (workspace) => workspace.id === state.activeWorkspaceId
   )
   const activeServer = state?.servers.find(
-    (server) => server.workspaceId === state.activeWorkspaceId
+    (server) =>
+      server.workspaceId === state.activeWorkspaceId && server.type === 'email'
+  )
+  const activeDatabaseServer = state?.servers.find(
+    (server) =>
+      server.workspaceId === state.activeWorkspaceId &&
+      server.type === 'database'
   )
 
   const refreshState = useCallback(async () => {
@@ -159,6 +172,9 @@ function App() {
           .getEmails(event.workspaceId)
           .then(setEmails)
           .catch((caught: unknown) => setError(messageOf(caught)))
+        if (event.serverName === 'Database') {
+          setDatabaseRevision((revision) => revision + 1)
+        }
       }
     })
   }, [livePaused, state?.activeWorkspaceId])
@@ -255,36 +271,76 @@ function App() {
     }, 'Email server added')
   }
 
-  const toggleServer = () => {
-    if (!activeServer || !state?.activeWorkspaceId) return
+  const addDatabaseServer = () => {
+    const workspaceId = state?.activeWorkspaceId
+    if (!workspaceId) return
+    void runAction(async () => {
+      await window.mockarium.addDatabaseServer(workspaceId)
+    }, 'Database studio created')
+  }
+
+  const toggleServer = (server: MockServer | null = activeServer ?? null) => {
+    if (!server || !state?.activeWorkspaceId) return
     void runAction(
       async () => {
-        if (activeServer.running) {
-          await window.mockarium.stopEmailServer(
-            activeServer.workspaceId,
-            activeServer.id
-          )
+        if (server.running) {
+          await window.mockarium.stopMockServer(server.workspaceId, server.id)
         } else {
-          await window.mockarium.startEmailServer(
-            activeServer.workspaceId,
-            activeServer.id
-          )
+          await window.mockarium.startMockServer(server.workspaceId, server.id)
         }
       },
-      activeServer.running ? 'Email server stopped' : 'Email server started'
+      server.running
+        ? `${server.name} server stopped`
+        : `${server.name} server started`
     )
   }
 
-  const resetMailbox = () => {
+  const saveDatabaseModel = async (model: DatabaseModel) => {
+    const workspaceId = state?.activeWorkspaceId
+    if (!workspaceId) throw new Error('Choose a workspace first.')
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const saved = await window.mockarium.saveDatabaseModel(workspaceId, model)
+      setState((current) =>
+        current ? { ...current, databaseModel: saved } : current
+      )
+      setNotice('Database model saved')
+      return saved
+    } catch (caught) {
+      setError(messageOf(caught))
+      throw caught
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const resetDatabase = async () => {
     if (!activeWorkspace) return
     if (
       !window.confirm(
-        'Reset this mock mailbox to its initial email data? Execution history will be kept.'
+        'Restore the starter database schema and sample records? This removes your custom tables and records. Tool history will be kept.'
       )
     ) {
       return
     }
-    void runAction(
+    await runAction(
+      () => window.mockarium.resetDatabase(activeWorkspace.id),
+      'Starter database restored. Tool history was preserved.'
+    )
+  }
+
+  const resetMailbox = async (): Promise<boolean> => {
+    if (!activeWorkspace) return false
+    if (
+      !window.confirm(
+        'Restore the starter mailbox? This replaces your identity, messages, folders, and contacts. Execution history will be kept.'
+      )
+    ) {
+      return false
+    }
+    return runAction(
       () => window.mockarium.resetEmailServer(activeWorkspace.id),
       'Mailbox reset. Execution history was preserved.'
     )
@@ -315,10 +371,18 @@ function App() {
     void copyText(JSON.stringify(config, null, 2), 'Connection configuration')
   }
 
-  const currentEmails = useMemo(
-    () => emails.filter((email) => email.folder === folder),
-    [emails, folder]
-  )
+  const copyDatabaseConfig = () => {
+    if (!activeDatabaseServer?.endpoint) return
+    const config = {
+      mcpServers: {
+        'mockarium-database': {
+          type: 'http',
+          url: activeDatabaseServer.endpoint
+        }
+      }
+    }
+    void copyText(JSON.stringify(config, null, 2), 'Connection configuration')
+  }
 
   const filteredEvents = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -369,10 +433,17 @@ function App() {
     setTheme((current) => (current === 'light' ? 'dark' : 'light'))
 
   const title = page === 'Live Inspector' ? 'Live Inspector' : page
+  const hasRunningServer =
+    state?.servers.some(
+      (server) =>
+        server.workspaceId === state.activeWorkspaceId && server.running
+    ) ?? false
   const pageDescription: Record<Page, string> = {
     Overview: 'Your simulated environment, at a glance.',
     Agents: 'Connect an agent you already use through MCP.',
-    'Mock Servers': 'Manage the simulated systems in this workspace.',
+    'Email Studio': 'Create, connect, and customize your simulated mailbox.',
+    'Database Studio':
+      'Shape a tiny business database and watch your agent use it.',
     Scenarios: 'Define repeatable agent tests.',
     'Live Inspector': 'Observe real MCP tool calls as they happen.',
     'Test Runs': 'Review and compare scenario results.',
@@ -528,9 +599,9 @@ function App() {
           <div className="topbar-actions">
             <div className="environment-pill">
               <span
-                className={`status-dot ${activeServer?.running ? 'running' : ''}`}
+                className={`status-dot ${hasRunningServer ? 'running' : ''}`}
               />
-              {activeServer?.running
+              {hasRunningServer
                 ? 'Mock environment running'
                 : 'Mock environment stopped'}
             </div>
@@ -676,12 +747,14 @@ function App() {
               availableTools={availableTools}
               livePaused={livePaused}
             />
-          ) : page === 'Mock Servers' ? (
-            <MockServersPage
+          ) : page === 'Email Studio' ? (
+            <EmailStudio
+              key={activeServer?.workspaceId ?? 'no-email-server'}
               server={activeServer ?? null}
+              emails={emails}
               busy={busy}
-              onAdd={addEmailServer}
-              onToggle={toggleServer}
+              onAddServer={addEmailServer}
+              onToggleServer={() => toggleServer()}
               onReset={resetMailbox}
               onCopyEndpoint={() =>
                 activeServer?.endpoint &&
@@ -689,23 +762,55 @@ function App() {
               }
               onCopyConfig={copyConfig}
               onOpenInspector={() => setPage('Live Inspector')}
+              onMailboxChanged={refreshState}
+            />
+          ) : page === 'Database Studio' ? (
+            <DatabaseStudio
+              model={state.databaseModel}
+              server={activeDatabaseServer ?? null}
+              busy={busy}
+              revision={databaseRevision}
+              onAddServer={addDatabaseServer}
+              onToggleServer={() => toggleServer(activeDatabaseServer ?? null)}
+              onReset={resetDatabase}
+              onCopyEndpoint={() =>
+                activeDatabaseServer?.endpoint &&
+                void copyText(activeDatabaseServer.endpoint, 'MCP endpoint')
+              }
+              onCopyConfig={copyDatabaseConfig}
+              onOpenInspector={() => setPage('Live Inspector')}
+              onSaveModel={saveDatabaseModel}
             />
           ) : page === 'Agents' ? (
             <AgentsPage
-              server={activeServer ?? null}
-              onNavigate={() => setPage('Mock Servers')}
+              server={
+                (activeServer?.running ? activeServer : null) ??
+                (activeDatabaseServer?.running ? activeDatabaseServer : null) ??
+                activeServer ??
+                activeDatabaseServer ??
+                null
+              }
+              onNavigate={() =>
+                setPage(
+                  activeDatabaseServer?.running && !activeServer?.running
+                    ? 'Database Studio'
+                    : activeServer || !activeDatabaseServer
+                      ? 'Email Studio'
+                      : 'Database Studio'
+                )
+              }
             />
           ) : page === 'Overview' ? (
             <OverviewPage
               workspace={activeWorkspace}
               server={activeServer ?? null}
               events={events}
-              emails={currentEmails}
+              emails={emails}
               folder={folder}
               onFolderChange={setFolder}
               onAddServer={addEmailServer}
               onToggleServer={toggleServer}
-              onReset={resetMailbox}
+              onReset={() => void resetMailbox()}
               onCopyEndpoint={() =>
                 activeServer?.endpoint &&
                 void copyText(activeServer.endpoint, 'MCP endpoint')
@@ -850,9 +955,9 @@ function OverviewPage({
         <button
           className="text-button"
           type="button"
-          onClick={() => onNavigate('Mock Servers')}
+          onClick={() => onNavigate('Email Studio')}
         >
-          Manage servers <ArrowRight size={14} />
+          Open Email Studio <ArrowRight size={14} />
         </button>
       </div>
 
@@ -1020,13 +1125,22 @@ function OverviewPage({
             </p>
           </div>
           {server && (
-            <button
-              className="button button-quiet"
-              type="button"
-              onClick={onReset}
-            >
-              <Trash2 size={14} /> Reset mock data
-            </button>
+            <div className="mailbox-header-actions">
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={() => onNavigate('Email Studio')}
+              >
+                <Wrench size={14} /> Customize mailbox
+              </button>
+              <button
+                className="button button-quiet"
+                type="button"
+                onClick={onReset}
+              >
+                <Trash2 size={14} /> Reset mock data
+              </button>
+            </div>
           )}
         </div>
         {server ? (
@@ -1072,223 +1186,131 @@ function OverviewPage({
 }
 
 function EmailList({ emails }: { emails: EmailMessage[] }) {
+  const [query, setQuery] = useState('')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   if (emails.length === 0) {
     return (
-      <div className="mailbox-disabled">
-        <Mail size={17} />
-        <span>No messages in this folder yet.</span>
+      <div className="mailbox-empty-state">
+        <div className="mailbox-empty-icon">
+          <Mail size={18} />
+        </div>
+        <strong>This folder is quiet</strong>
+        <span>Messages created by your agent will appear here.</span>
       </div>
     )
   }
-  return (
-    <div className="email-list">
-      {emails.slice(0, 6).map((email) => (
-        <div className="email-row" key={email.id}>
-          <div className="email-avatar">
-            {email.fromName.slice(0, 1).toUpperCase()}
-          </div>
-          <div className="email-row-content">
-            <div className="email-row-top">
-              <strong>{email.fromName}</strong>
-              <span>{new Date(email.sentAt).toLocaleDateString()}</span>
-            </div>
-            <div className="email-subject">{email.subject}</div>
-            <div className="email-excerpt">{email.body}</div>
-          </div>
-        </div>
-      ))}
-    </div>
+  const filtered = emails.filter((email) =>
+    [email.fromName, email.fromEmail, email.toEmail, email.subject, email.body]
+      .join(' ')
+      .toLowerCase()
+      .includes(query.trim().toLowerCase())
   )
-}
+  const selected =
+    filtered.find((email) => email.id === selectedId) ?? filtered[0]
 
-function MockServersPage({
-  server,
-  busy,
-  onAdd,
-  onToggle,
-  onReset,
-  onCopyEndpoint,
-  onCopyConfig,
-  onOpenInspector
-}: {
-  server: MockServer | null
-  busy: boolean
-  onAdd: () => void
-  onToggle: () => void
-  onReset: () => void
-  onCopyEndpoint: () => void
-  onCopyConfig: () => void
-  onOpenInspector: () => void
-}) {
   return (
-    <div className="server-catalog">
-      <div className="catalog-intro">
-        <div className="catalog-icon">
-          <Mail size={21} />
-        </div>
-        <div>
-          <span className="eyebrow">READY-MADE CONNECTOR</span>
-          <h2>Email</h2>
-          <p>
-            A stateful simulated mailbox with searchable messages, sending,
-            drafts, folders, and contacts.
-          </p>
-        </div>
+    <div className="mailbox-browser">
+      <div className="mailbox-browser-toolbar">
+        <label className="mailbox-search">
+          <Search size={14} />
+          <input
+            type="search"
+            aria-label="Search this mailbox folder"
+            placeholder="Search sender, subject, or message"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          {query && (
+            <button
+              type="button"
+              aria-label="Clear mailbox search"
+              onClick={() => setQuery('')}
+            >
+              <X size={13} />
+            </button>
+          )}
+        </label>
+        <span className="mailbox-result-count">
+          {filtered.length} {filtered.length === 1 ? 'message' : 'messages'}
+        </span>
       </div>
-      {!server ? (
-        <div className="panel catalog-add-card">
-          <div>
-            <strong>Add Email to this workspace</strong>
-            <span>
-              Creates isolated local fixtures. Nothing connects to a real email
-              account.
-            </span>
-          </div>
-          <button
-            className="button button-primary"
-            type="button"
-            onClick={onAdd}
-            disabled={busy}
-          >
-            {busy ? (
-              <LoaderCircle className="spin" size={15} />
-            ) : (
-              <Plus size={15} />
-            )}{' '}
-            Add server
-          </button>
+      {filtered.length === 0 ? (
+        <div className="mailbox-empty-state mailbox-search-empty">
+          <Search size={17} />
+          <strong>No matching messages</strong>
+          <span>Try a different name, subject, or phrase.</span>
         </div>
       ) : (
-        <div className="panel server-details-card">
-          <div className="server-details-top">
-            <div className="server-details-name">
-              <div className="panel-heading-icon email-icon">
-                <Mail size={17} />
-              </div>
-              <div>
-                <h3>Email mock server</h3>
-                <span>Isolated workspace data · SQLite persistence</span>
-              </div>
-            </div>
-            <span
-              className={`tag-status ${server.running ? 'tag-running' : 'tag-stopped'}`}
-            >
-              <span className="status-dot" />
-              {server.running ? 'Running' : 'Stopped'}
-            </span>
-          </div>
-          <div className="tool-list-heading">
-            AVAILABLE TOOLS <span>7 tools</span>
-          </div>
-          <div className="tool-chips">
-            {[
-              'search_emails',
-              'get_email',
-              'send_email',
-              'reply_to_email',
-              'create_draft',
-              'list_folders',
-              'list_contacts'
-            ].map((tool) => (
-              <span key={tool}>
-                <Wrench size={12} />
-                {tool}
-              </span>
+        <div className="mailbox-browser-grid">
+          <div className="email-list" aria-label="Messages">
+            {filtered.map((email) => (
+              <button
+                className={`email-row ${selected?.id === email.id ? 'selected' : ''}`}
+                key={email.id}
+                type="button"
+                aria-pressed={selected?.id === email.id}
+                onClick={() => setSelectedId(email.id)}
+              >
+                <div className="email-avatar">
+                  {(email.folder === 'Sent' ? 'A' : email.fromName)
+                    .slice(0, 1)
+                    .toUpperCase()}
+                </div>
+                <div className="email-row-content">
+                  <div className="email-row-top">
+                    <strong>
+                      {email.folder === 'Sent'
+                        ? `To ${email.toEmail}`
+                        : email.fromName}
+                    </strong>
+                    <span>
+                      {new Date(email.sentAt).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                  <div className="email-subject">{email.subject}</div>
+                  <div className="email-excerpt">{email.body}</div>
+                </div>
+              </button>
             ))}
           </div>
-          <div className="server-details-actions">
-            <button
-              className="button button-primary"
-              type="button"
-              onClick={onToggle}
-              disabled={busy}
-            >
-              {busy ? (
-                <LoaderCircle className="spin" size={15} />
-              ) : server.running ? (
-                <Square size={13} />
-              ) : (
-                <Play size={15} />
-              )}
-              {server.running ? 'Stop server' : 'Start server'}
-            </button>
-            <button
-              className="button button-secondary"
-              type="button"
-              onClick={onReset}
-            >
-              <Trash2 size={14} /> Reset data
-            </button>
-            <button
-              className="button button-secondary"
-              type="button"
-              onClick={onOpenInspector}
-            >
-              <Activity size={15} /> Open Inspector
-            </button>
-          </div>
-          {server.running && server.endpoint && (
-            <div className="connection-card">
-              <div className="connection-header">
+          {selected && (
+            <article className="email-preview">
+              <div className="email-preview-heading">
+                <span className="email-folder-badge">{selected.folder}</span>
+                <time dateTime={selected.sentAt}>
+                  {new Date(selected.sentAt).toLocaleString(undefined, {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit'
+                  })}
+                </time>
+              </div>
+              <h3>{selected.subject}</h3>
+              <div className="email-address-card">
+                <div className="email-avatar email-avatar-large">
+                  {selected.fromName.slice(0, 1).toUpperCase()}
+                </div>
                 <div>
-                  <span className="eyebrow">STREAMABLE HTTP</span>
-                  <strong>Connect an external MCP client</strong>
+                  <strong>{selected.fromName}</strong>
+                  <span>{selected.fromEmail}</span>
+                  <small>To {selected.toEmail}</small>
                 </div>
-                <span className="loopback-badge">
-                  <ShieldCheck size={12} /> Loopback only
+              </div>
+              <div className="email-preview-body">{selected.body}</div>
+              {selected.parentEmailId && (
+                <span className="email-thread-note">
+                  <ArrowRight size={12} /> Reply in an existing conversation
                 </span>
-              </div>
-              <p>
-                In MCP Inspector, choose Streamable HTTP and enter this
-                endpoint. Client configuration formats vary.
-              </p>
-              <div className="connection-endpoint">
-                <code>{server.endpoint}</code>
-                <button
-                  className="button button-secondary button-small"
-                  type="button"
-                  onClick={onCopyEndpoint}
-                >
-                  <Copy size={13} /> Copy URL
-                </button>
-              </div>
-              <div className="connection-config">
-                <div className="connection-config-head">
-                  <span>Generic HTTP client configuration</span>
-                  <button
-                    className="text-button"
-                    type="button"
-                    onClick={onCopyConfig}
-                  >
-                    <Copy size={13} /> Copy
-                  </button>
-                </div>
-                <pre>
-                  {JSON.stringify(
-                    {
-                      mcpServers: {
-                        'mockarium-email': {
-                          type: 'http',
-                          url: server.endpoint
-                        }
-                      }
-                    },
-                    null,
-                    2
-                  )}
-                </pre>
-              </div>
-            </div>
+              )}
+            </article>
           )}
         </div>
       )}
-      <div className="security-note">
-        <ShieldCheck size={16} />
-        <span>
-          <strong>Mock-safe by default.</strong> This connector never contacts a
-          real email provider. All state is isolated to this workspace.
-        </span>
-      </div>
     </div>
   )
 }
@@ -1318,7 +1340,10 @@ function AgentsPage({
           type="button"
           onClick={onNavigate}
         >
-          View mock servers <ArrowRight size={15} />
+          {server?.type === 'database'
+            ? 'Open Database Studio'
+            : 'Open Email Studio'}{' '}
+          <ArrowRight size={15} />
         </button>
       </section>
       <section className="panel connection-status-card">
