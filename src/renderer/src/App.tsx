@@ -16,7 +16,6 @@ import {
   Copy,
   Database,
   Ellipsis,
-  ExternalLink,
   FileText,
   FolderOpen,
   Gauge,
@@ -52,7 +51,6 @@ import { EmailStudio } from './EmailStudio'
 
 type Page =
   | 'Overview'
-  | 'Agents'
   | 'Email Studio'
   | 'Database Studio'
   | 'Scenarios'
@@ -67,7 +65,6 @@ const navigation: Array<{
   section: string
 }> = [
   { label: 'Overview', icon: LayoutDashboard, section: 'Workspace' },
-  { label: 'Agents', icon: Zap, section: 'Workspace' },
   { label: 'Email Studio', icon: Mail, section: 'Workspace' },
   { label: 'Database Studio', icon: Database, section: 'Workspace' },
   { label: 'Scenarios', icon: FileText, section: 'Testing' },
@@ -440,7 +437,6 @@ function App() {
     ) ?? false
   const pageDescription: Record<Page, string> = {
     Overview: 'Your simulated environment, at a glance.',
-    Agents: 'Connect an agent you already use through MCP.',
     'Email Studio': 'Create, connect, and customize your simulated mailbox.',
     'Database Studio':
       'Shape a tiny business database and watch your agent use it.',
@@ -780,25 +776,6 @@ function App() {
               onCopyConfig={copyDatabaseConfig}
               onOpenInspector={() => setPage('Live Inspector')}
               onSaveModel={saveDatabaseModel}
-            />
-          ) : page === 'Agents' ? (
-            <AgentsPage
-              server={
-                (activeServer?.running ? activeServer : null) ??
-                (activeDatabaseServer?.running ? activeDatabaseServer : null) ??
-                activeServer ??
-                activeDatabaseServer ??
-                null
-              }
-              onNavigate={() =>
-                setPage(
-                  activeDatabaseServer?.running && !activeServer?.running
-                    ? 'Database Studio'
-                    : activeServer || !activeDatabaseServer
-                      ? 'Email Studio'
-                      : 'Database Studio'
-                )
-              }
             />
           ) : page === 'Overview' ? (
             <OverviewPage
@@ -1311,65 +1288,6 @@ function EmailList({ emails }: { emails: EmailMessage[] }) {
           )}
         </div>
       )}
-    </div>
-  )
-}
-
-function AgentsPage({
-  server,
-  onNavigate
-}: {
-  server: MockServer | null
-  onNavigate: () => void
-}) {
-  return (
-    <div className="agent-connection-layout">
-      <section className="panel agent-connect-card">
-        <div className="agent-connect-icon">
-          <Zap size={21} />
-        </div>
-        <span className="eyebrow">EXTERNAL AGENT MODE</span>
-        <h2>Bring your own agent</h2>
-        <p>
-          Mockarium is the simulated environment, not an AI agent builder.
-          Connect an MCP-compatible client or agent host to a running mock
-          server.
-        </p>
-        <button
-          className="button button-primary"
-          type="button"
-          onClick={onNavigate}
-        >
-          {server?.type === 'database'
-            ? 'Open Database Studio'
-            : 'Open Email Studio'}{' '}
-          <ArrowRight size={15} />
-        </button>
-      </section>
-      <section className="panel connection-status-card">
-        <div className="panel-heading">
-          <div className="panel-heading-icon activity-icon">
-            <Activity size={16} />
-          </div>
-          <div className="panel-heading-copy">
-            <h3>Connection status</h3>
-            <span>Observable client activity</span>
-          </div>
-        </div>
-        <div className="connection-status-empty">
-          <ExternalLink size={19} />
-          <strong>
-            {server?.running
-              ? 'Ready for observable tool calls'
-              : 'No mock server running'}
-          </strong>
-          <span>
-            {server?.running
-              ? 'Stateless MCP connections do not expose persistent client counts. Actual tool calls appear in Live Inspector.'
-              : 'Start a mock server to get its local MCP endpoint.'}
-          </span>
-        </div>
-      </section>
     </div>
   )
 }
