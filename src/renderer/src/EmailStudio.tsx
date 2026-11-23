@@ -1,20 +1,15 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { createPortal } from 'react-dom'
 import {
-  Activity,
   ContactRound,
-  Copy,
   FolderPlus,
   LoaderCircle,
   Mail,
-  Play,
   Plus,
-  RotateCcw,
   Save,
   ShieldCheck,
   Sparkles,
-  Square,
   Trash2,
-  Wrench,
   X
 } from 'lucide-react'
 import type {
@@ -25,8 +20,10 @@ import type {
   MockServer
 } from '../../shared/contracts'
 import { ToolExplorer } from './ToolExplorer'
+import { StudioConnection, StudioHeader } from './StudioChrome'
 
 interface EmailStudioProps {
+  connectionTarget: HTMLElement | null
   server: MockServer | null
   emails: EmailMessage[]
   busy: boolean
@@ -79,6 +76,7 @@ function messageInput(email: EmailMessage): EmailMessageInput {
 }
 
 export function EmailStudio({
+  connectionTarget,
   server,
   emails,
   busy,
@@ -91,6 +89,7 @@ export function EmailStudio({
   onMailboxChanged
 }: EmailStudioProps) {
   const workspaceId = server?.workspaceId ?? ''
+  const settingsRef = useRef<HTMLElement>(null)
   const [profile, setProfile] = useState<EmailProfile | null>(null)
   const [contacts, setContacts] = useState<EmailContact[]>([])
   const [folders, setFolders] = useState<string[]>([])
@@ -285,27 +284,42 @@ export function EmailStudio({
 
   return (
     <div className="email-studio">
-      <section className="email-studio-banner">
-        <div className="email-studio-banner-icon">
-          <Mail size={19} />
-        </div>
-        <div>
-          <span className="eyebrow">EMAIL STUDIO · MOCK MAILBOX</span>
-          <h2>Give your agent a mailbox with a story.</h2>
-          <p>Customize the identity, messages, folders, and people it sees.</p>
-        </div>
-        <div className="email-studio-stats">
-          <span>
-            <strong>{emails.length}</strong> messages
-          </span>
-          <span>
-            <strong>{folders.length}</strong> folders
-          </span>
-          <span>
-            <strong>{contacts.length}</strong> contacts
-          </span>
-        </div>
-      </section>
+      {connectionTarget &&
+        createPortal(
+          <StudioConnection
+            key={server.id}
+            server={server}
+            icon={Mail}
+            busy={busy}
+            toggleDisabled={saving}
+            resetDisabled={saving || loading}
+            safety="Local only · No real emails sent"
+            onToggleServer={onToggleServer}
+            onCopyEndpoint={onCopyEndpoint}
+            onCopyConfig={onCopyConfig}
+            onOpenInspector={onOpenInspector}
+            onReset={() => void resetMailbox()}
+          />,
+          connectionTarget
+        )}
+      <StudioHeader
+        name="Email"
+        icon={Mail}
+        title="Give your agent a mailbox with a story."
+        description="Customize the identity, messages, folders, and people it sees."
+        stats={[
+          { value: emails.length, label: 'messages' },
+          { value: folders.length, label: 'folders' },
+          { value: contacts.length, label: 'contacts' }
+        ]}
+        onSetup={() =>
+          settingsRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          })
+        }
+        setupDisabled={!profile || loading}
+      />
 
       {error && (
         <div className="inline-alert" role="alert">
@@ -325,135 +339,6 @@ export function EmailStudio({
         </div>
       )}
 
-      <section className="panel email-connection">
-        <div className="email-connection-top">
-          <div className="email-connection-title">
-            <div className="email-connection-icon">
-              <Sparkles size={17} />
-            </div>
-            <div>
-              <span className="eyebrow">YOUR AGENT CONNECTION</span>
-              <h3>Email mock server</h3>
-              <p>
-                {server.running
-                  ? 'Ready for your agent to explore this mailbox.'
-                  : 'Start the server to connect your agent.'}
-              </p>
-            </div>
-          </div>
-          <div className="studio-server-controls">
-            <span
-              className={`tag-status ${server.running ? 'tag-running' : 'tag-stopped'}`}
-            >
-              <span className="status-dot" />
-              {server.running ? 'Running' : 'Stopped'}
-            </span>
-            <button
-              className="button button-primary studio-server-button"
-              type="button"
-              onClick={onToggleServer}
-              disabled={busy || saving}
-            >
-              {busy ? (
-                <LoaderCircle className="spin" size={15} />
-              ) : server.running ? (
-                <Square size={13} />
-              ) : (
-                <Play size={15} />
-              )}
-              {server.running ? 'Stop email server' : 'Start email server'}
-            </button>
-          </div>
-        </div>
-        {server.running && server.endpoint && (
-          <div className="email-connection-endpoint">
-            <div>
-              <span className="eyebrow">LOCAL MCP ENDPOINT</span>
-              <code>{server.endpoint}</code>
-            </div>
-            <button
-              className="button button-secondary button-small"
-              type="button"
-              onClick={onCopyEndpoint}
-            >
-              <Copy size={13} /> Copy URL
-            </button>
-            <button
-              className="button button-secondary button-small"
-              type="button"
-              onClick={onCopyConfig}
-            >
-              <Copy size={13} /> Copy config
-            </button>
-          </div>
-        )}
-        <div className="email-connection-actions">
-          <button
-            className="button button-secondary"
-            type="button"
-            onClick={onOpenInspector}
-          >
-            <Activity size={14} /> Live Inspector
-          </button>
-          <button
-            className="button button-quiet"
-            type="button"
-            onClick={() => void resetMailbox()}
-            disabled={busy || saving || loading}
-          >
-            <RotateCcw size={14} /> Restore starter mailbox
-          </button>
-          <span className="email-connection-safety">
-            <ShieldCheck size={14} /> Local only · No real emails sent
-          </span>
-        </div>
-        <details className="email-connection-details">
-          <summary>
-            <Wrench size={13} /> Connection details
-          </summary>
-          <div className="email-connection-details-content">
-            {server.running && server.endpoint ? (
-              <>
-                <p>
-                  In MCP Inspector, choose Streamable HTTP and enter the
-                  endpoint above. Client configuration formats vary.
-                </p>
-                <div className="connection-config">
-                  <div className="connection-config-head">
-                    <span>Generic HTTP client configuration</span>
-                    <button
-                      className="text-button"
-                      type="button"
-                      onClick={onCopyConfig}
-                    >
-                      <Copy size={13} /> Copy
-                    </button>
-                  </div>
-                  <pre>
-                    {JSON.stringify(
-                      {
-                        mcpServers: {
-                          'mockarium-email': {
-                            type: 'http',
-                            url: server.endpoint
-                          }
-                        }
-                      },
-                      null,
-                      2
-                    )}
-                  </pre>
-                </div>
-              </>
-            ) : (
-              <p>
-                Start the server to reveal its local endpoint and configuration.
-              </p>
-            )}
-          </div>
-        </details>
-      </section>
-
       <ToolExplorer key={server.id} server={server} />
 
       {loading ? (
@@ -463,10 +348,15 @@ export function EmailStudio({
       ) : (
         <>
           {profile && (
-            <section className="panel email-studio-panel email-profile-panel">
+            <section
+              className="panel email-studio-panel studio-settings-panel"
+              ref={settingsRef}
+            >
               <div className="email-studio-section-heading">
                 <div>
-                  <span className="eyebrow">MAILBOX IDENTITY</span>
+                  <span className="eyebrow studio-design-label">
+                    DESIGN · MAILBOX IDENTITY
+                  </span>
                   <h3>Who is your agent?</h3>
                   <p>
                     This identity appears on emails the agent sends or drafts.

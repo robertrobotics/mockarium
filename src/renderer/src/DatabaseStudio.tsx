@@ -1,26 +1,24 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type SetStateAction
 } from 'react'
+import { createPortal } from 'react-dom'
 import {
-  Activity,
   ArrowRight,
   Check,
   ChevronRight,
   CircleHelp,
-  Copy,
   Database,
   GitBranch,
   LoaderCircle,
   Plus,
-  RotateCcw,
   Save,
   ShieldCheck,
   Sparkles,
-  Square,
   Table2,
   Trash2
 } from 'lucide-react'
@@ -33,6 +31,7 @@ import type {
   MockServer
 } from '../../shared/contracts'
 import { ToolExplorer } from './ToolExplorer'
+import { StudioConnection, StudioHeader } from './StudioChrome'
 
 const fieldTypes: Array<{ value: DatabaseFieldType; label: string }> = [
   { value: 'text', label: 'Text' },
@@ -50,6 +49,7 @@ interface EditableRecord extends DatabaseRecord {
 }
 
 interface DatabaseStudioProps {
+  connectionTarget: HTMLElement | null
   model: DatabaseModel | null
   server: MockServer | null
   busy: boolean
@@ -130,6 +130,7 @@ function recordTitle(record: DatabaseRecord, table: DatabaseTable): string {
 }
 
 export function DatabaseStudio({
+  connectionTarget,
   model,
   server,
   busy,
@@ -142,6 +143,7 @@ export function DatabaseStudio({
   onOpenInspector,
   onSaveModel
 }: DatabaseStudioProps) {
+  const settingsRef = useRef<HTMLElement>(null)
   const [modelState, setModelState] = useState<{
     source: DatabaseModel | null
     value: DatabaseModel | null
@@ -621,113 +623,51 @@ export function DatabaseStudio({
 
   return (
     <div className="database-studio">
-      <section className="database-studio-banner">
-        <div className="database-banner-icon">
-          <Database size={19} />
-        </div>
-        <div className="database-banner-copy">
-          <span className="eyebrow">DATABASE STUDIO · CLIENT PIPELINE</span>
-          <h2>A small world, ready for your agent.</h2>
-          <p>Remix the model. Edit the sample data. Let your agent explore.</p>
-        </div>
-        <div className="database-banner-stats">
-          <span>
-            <strong>{draftModel.tables.length}</strong> tables
-          </span>
-          <span>
-            <strong>{relationshipCount}</strong> links
-          </span>
-          <span>
-            <strong>{rows.filter((row) => !row.isNew).length}</strong> records
-            here
-          </span>
-        </div>
-      </section>
-
-      <section className="database-connection-row">
-        <div className="database-connection-card panel">
-          <div className="database-connection-icon">
-            <Database size={17} />
-          </div>
-          <div className="database-connection-copy">
-            <span className="eyebrow">REAL AGENT · FAKE DATABASE</span>
-            <strong>
-              {server.running
-                ? 'Your database is ready to explore'
-                : 'Start the database for your agent'}
-            </strong>
-            <span>
-              {modelChanged
-                ? 'Save your model changes before starting or stopping the server.'
-                : 'Only this workspace’s simulated records are available. No raw SQL or production connection.'}
-            </span>
-          </div>
-          <span
-            className={`tag-status ${server.running ? 'tag-running' : 'tag-stopped'}`}
-          >
-            <span className="status-dot" />
-            {server.running ? 'Running' : 'Stopped'}
-          </span>
-          <button
-            className="button button-primary studio-server-button"
-            type="button"
-            onClick={onToggleServer}
-            disabled={busy || modelChanged}
-            title={
+      {connectionTarget &&
+        createPortal(
+          <StudioConnection
+            key={server.id}
+            server={server}
+            icon={Database}
+            busy={busy}
+            toggleDisabled={modelChanged || savingModel}
+            disabledReason={
               modelChanged
-                ? 'Save your model changes before starting or stopping the server'
+                ? 'Save your model changes before starting or stopping the server.'
                 : undefined
             }
-          >
-            {busy ? (
-              <LoaderCircle className="spin" size={14} />
-            ) : server.running ? (
-              <Square size={13} />
-            ) : (
-              <ArrowRight size={14} />
-            )}
-            {server.running ? 'Stop database server' : 'Start database server'}
-          </button>
-          {server.running && (
-            <button
-              className="button button-secondary"
-              type="button"
-              onClick={onOpenInspector}
-            >
-              <Activity size={14} /> Inspector
-            </button>
-          )}
-          <button
-            className="button button-quiet button-small"
-            type="button"
-            onClick={onReset}
-          >
-            <RotateCcw size={14} /> Restore starter
-          </button>
-        </div>
-        {server.running && server.endpoint && (
-          <div className="database-endpoint panel">
-            <div>
-              <span className="eyebrow">STREAMABLE HTTP · LOOPBACK ONLY</span>
-              <code>{server.endpoint}</code>
-            </div>
-            <button
-              className="button button-secondary button-small"
-              type="button"
-              onClick={onCopyEndpoint}
-            >
-              <Copy size={13} /> Copy URL
-            </button>
-            <button
-              className="button button-quiet button-small"
-              type="button"
-              onClick={onCopyConfig}
-            >
-              <Copy size={13} /> Copy config
-            </button>
-          </div>
+            resetDisabled={savingModel}
+            safety="Local only · No production database"
+            onToggleServer={onToggleServer}
+            onCopyEndpoint={onCopyEndpoint}
+            onCopyConfig={onCopyConfig}
+            onOpenInspector={onOpenInspector}
+            onReset={onReset}
+          />,
+          connectionTarget
         )}
-      </section>
+      <StudioHeader
+        name="Database"
+        icon={Database}
+        title="A small world, ready for your agent."
+        description="Remix the model. Edit the sample data. Let your agent explore."
+        stats={[
+          { value: draftModel.tables.length, label: 'tables' },
+          { value: relationshipCount, label: 'links' },
+          {
+            value: rows.filter((row) => !row.isNew).length,
+            label: 'records here'
+          }
+        ]}
+        onSetup={() =>
+          settingsRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          })
+        }
+      />
+
+      <ToolExplorer key={server.id} server={server} />
 
       <section className="database-model-map panel">
         <div className="database-map-heading">
@@ -787,10 +727,15 @@ export function DatabaseStudio({
       </section>
 
       <div className="database-studio-grid">
-        <aside className="panel database-schema-panel">
+        <aside
+          className="panel database-schema-panel studio-settings-panel"
+          ref={settingsRef}
+        >
           <div className="database-panel-heading">
             <div>
-              <span className="eyebrow">DESIGNER</span>
+              <span className="eyebrow studio-design-label">
+                DESIGN · DATA MODEL
+              </span>
               <h3>Shape your tables</h3>
             </div>
             <span className="designer-count">
@@ -1251,7 +1196,6 @@ export function DatabaseStudio({
         </section>
       </div>
 
-      <ToolExplorer key={server.id} server={server} />
       <div className="database-safe-note">
         <ShieldCheck size={15} />
         <span>

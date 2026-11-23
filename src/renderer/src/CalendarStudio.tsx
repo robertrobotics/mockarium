@@ -8,32 +8,27 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent
 } from 'react'
+import { createPortal } from 'react-dom'
 import {
-  Activity,
   Bot,
   CalendarDays,
   Check,
   ChevronLeft,
   ChevronRight,
   Clock3,
-  Copy,
   FastForward,
   Globe2,
   LoaderCircle,
   MapPin,
-  Play,
   Plus,
-  RotateCcw,
   Save,
   Settings2,
   ShieldCheck,
   Sparkles,
-  Square,
   Trash2,
   TriangleAlert,
   UserPlus,
   Users,
-  Wrench,
   X
 } from 'lucide-react'
 import type {
@@ -54,8 +49,10 @@ import {
   zonedTimeToUtc
 } from '../../shared/calendar-time'
 import { ToolExplorer } from './ToolExplorer'
+import { StudioConnection, StudioHeader } from './StudioChrome'
 
 interface CalendarStudioProps {
+  connectionTarget: HTMLElement | null
   workspaceId: string
   server: MockServer | null
   busy: boolean
@@ -294,6 +291,7 @@ function messageOf(caught: unknown, fallback: string): string {
 }
 
 export function CalendarStudio({
+  connectionTarget,
   workspaceId,
   server,
   busy,
@@ -814,49 +812,44 @@ export function CalendarStudio({
 
   return (
     <div className="email-studio calendar-studio">
-      <section className="calendar-banner">
-        <div className="calendar-banner-icon">
-          <CalendarDays size={19} />
-        </div>
-        <div>
-          <span className="eyebrow calendar-design-label">
-            DESIGN · CALENDAR STUDIO
-          </span>
-          <h2>Design the week your agent has to plan around.</h2>
-          <p>
-            Drag to reschedule, click an empty slot to add a meeting, and set
-            the simulated clock.
-          </p>
-        </div>
-        <div className="email-studio-stats">
-          <span>
-            <strong>{weekEvents.length}</strong> this week
-          </span>
-          <span>
-            <strong>{pendingInvites.length}</strong> to answer
-          </span>
-          <span>
-            <strong>{calendar?.people.length ?? 0}</strong> people
-          </span>
-          <span>
-            <strong>{conflicts.size}</strong> clashing
-          </span>
-        </div>
-        <button
-          className="button button-secondary calendar-setup-button"
-          type="button"
-          disabled={!profile}
-          onClick={() => {
-            setSidebarMode('setup')
-            sidebarRef.current?.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start'
-            })
-          }}
-        >
-          <Settings2 size={14} /> Calendar setup
-        </button>
-      </section>
+      {connectionTarget &&
+        createPortal(
+          <StudioConnection
+            key={server.id}
+            server={server}
+            icon={CalendarDays}
+            busy={busy}
+            toggleDisabled={saving}
+            resetDisabled={saving || !calendar}
+            safety="Local only · No real invitations sent"
+            onToggleServer={onToggleServer}
+            onCopyEndpoint={onCopyEndpoint}
+            onCopyConfig={onCopyConfig}
+            onOpenInspector={onOpenInspector}
+            onReset={() => void resetCalendar()}
+          />,
+          connectionTarget
+        )}
+      <StudioHeader
+        name="Calendar"
+        icon={CalendarDays}
+        title="Design the week your agent has to plan around."
+        description="Drag to reschedule, click an empty slot to add a meeting, and set the simulated clock."
+        stats={[
+          { value: weekEvents.length, label: 'this week' },
+          { value: pendingInvites.length, label: 'to answer' },
+          { value: calendar?.people.length ?? 0, label: 'people' },
+          { value: conflicts.size, label: 'clashing' }
+        ]}
+        onSetup={() => {
+          setSidebarMode('setup')
+          sidebarRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          })
+        }}
+        setupDisabled={!profile}
+      />
 
       {error && (
         <div className="inline-alert" role="alert">
@@ -875,137 +868,6 @@ export function CalendarStudio({
           {notice}
         </div>
       )}
-
-      <section className="panel email-connection">
-        <div className="email-connection-top">
-          <div className="email-connection-title">
-            <div className="email-connection-icon calendar-connection-icon">
-              <Sparkles size={17} />
-            </div>
-            <div>
-              <span className="eyebrow">YOUR AGENT CONNECTION</span>
-              <h3>Calendar mock server</h3>
-              <p>
-                {server.running
-                  ? 'Ready for your agent to read and schedule.'
-                  : 'Start the server to connect your agent.'}
-              </p>
-            </div>
-          </div>
-          <div className="studio-server-controls">
-            <span
-              className={`tag-status ${server.running ? 'tag-running' : 'tag-stopped'}`}
-            >
-              <span className="status-dot" />
-              {server.running ? 'Running' : 'Stopped'}
-            </span>
-            <button
-              className="button button-primary studio-server-button"
-              type="button"
-              onClick={onToggleServer}
-              disabled={busy || saving}
-            >
-              {busy ? (
-                <LoaderCircle className="spin" size={15} />
-              ) : server.running ? (
-                <Square size={13} />
-              ) : (
-                <Play size={15} />
-              )}
-              {server.running
-                ? 'Stop calendar server'
-                : 'Start calendar server'}
-            </button>
-          </div>
-        </div>
-        {server.running && server.endpoint && (
-          <div className="email-connection-endpoint">
-            <div>
-              <span className="eyebrow">LOCAL MCP ENDPOINT</span>
-              <code>{server.endpoint}</code>
-            </div>
-            <button
-              className="button button-secondary button-small"
-              type="button"
-              onClick={onCopyEndpoint}
-            >
-              <Copy size={13} /> Copy URL
-            </button>
-            <button
-              className="button button-secondary button-small"
-              type="button"
-              onClick={onCopyConfig}
-            >
-              <Copy size={13} /> Copy config
-            </button>
-          </div>
-        )}
-        <div className="email-connection-actions">
-          <button
-            className="button button-secondary"
-            type="button"
-            onClick={onOpenInspector}
-          >
-            <Activity size={14} /> Live Inspector
-          </button>
-          <button
-            className="button button-quiet"
-            type="button"
-            onClick={() => void resetCalendar()}
-            disabled={busy || saving || !calendar}
-          >
-            <RotateCcw size={14} /> Restore starter calendar
-          </button>
-          <span className="email-connection-safety">
-            <ShieldCheck size={14} /> Local only · No real invitations sent
-          </span>
-        </div>
-        <details className="email-connection-details">
-          <summary>
-            <Wrench size={13} /> Connection details
-          </summary>
-          <div className="email-connection-details-content">
-            {server.running && server.endpoint ? (
-              <>
-                <p>
-                  In MCP Inspector, choose Streamable HTTP and enter the
-                  endpoint above. Client configuration formats vary.
-                </p>
-                <div className="connection-config">
-                  <div className="connection-config-head">
-                    <span>Generic HTTP client configuration</span>
-                    <button
-                      className="text-button"
-                      type="button"
-                      onClick={onCopyConfig}
-                    >
-                      <Copy size={13} /> Copy
-                    </button>
-                  </div>
-                  <pre>
-                    {JSON.stringify(
-                      {
-                        mcpServers: {
-                          'mockarium-calendar': {
-                            type: 'http',
-                            url: server.endpoint
-                          }
-                        }
-                      },
-                      null,
-                      2
-                    )}
-                  </pre>
-                </div>
-              </>
-            ) : (
-              <p>
-                Start the server to reveal its local endpoint and configuration.
-              </p>
-            )}
-          </div>
-        </details>
-      </section>
 
       <ToolExplorer key={server.id} server={server} />
 
@@ -1774,12 +1636,12 @@ export function CalendarStudio({
             )}
 
             <section
-              className="panel email-studio-panel calendar-people-settings"
+              className="panel email-studio-panel calendar-people-settings studio-settings-panel"
               hidden={sidebarMode !== 'setup'}
             >
               <div className="email-studio-section-heading">
                 <div>
-                  <span className="eyebrow calendar-section-design-label">
+                  <span className="eyebrow studio-design-label">
                     DESIGN · PEOPLE &amp; TIME ZONES
                   </span>
                   <h3>Who your agent schedules with</h3>
@@ -1992,12 +1854,12 @@ export function CalendarStudio({
 
             {profileDraft && (
               <section
-                className="panel email-studio-panel calendar-owner-settings"
+                className="panel email-studio-panel calendar-owner-settings studio-settings-panel"
                 hidden={sidebarMode !== 'setup'}
               >
                 <div className="email-studio-section-heading">
                   <div>
-                    <span className="eyebrow calendar-section-design-label">
+                    <span className="eyebrow studio-design-label">
                       DESIGN · OWNER &amp; SIMULATED CLOCK
                     </span>
                     <h3>Whose calendar is this?</h3>

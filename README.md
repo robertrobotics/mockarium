@@ -66,7 +66,14 @@ In Calendar Studio, use **Calendar setup** in the banner or sidebar to edit the
 owner, simulated clock, working hours, and people. Switch back to **Agenda** for
 invitations; creating or selecting an event opens its editor automatically.
 
-Use the **Start** button in the connection panel near the top of each studio, then copy its displayed endpoint and client configuration. Database model changes must be saved before starting or stopping its server. The servers use MCP Streamable HTTP on loopback. The Database tools are `database_schema`, `database_list_records`, `database_get_record`, `database_create_record`, `database_update_record`, and `database_delete_record`. The Calendar tools are `calendar_get_context`, `calendar_list_people`, `calendar_list_events`, `calendar_get_event`, `calendar_find_availability`, `calendar_create_event`, `calendar_update_event`, `calendar_cancel_event`, and `calendar_respond_to_invitation`. Protocol-level tool listing and calls have been verified with MCP Inspector CLI 2.15.0; this is not a claim of compatibility with an untested agent host. To inspect a running server from a terminal:
+All studios share the same top-level layout: server status and Start/Stop
+controls beside the studio title, a **Design** banner with a setup shortcut,
+and the expandable **Agent toolkit**. Running servers show their address and
+copy actions beside the title. Open **Connection** there for the full endpoint,
+client configuration, Live Inspector, and restore controls. Setup shortcuts jump
+to each studio's design controls.
+
+Use the **Start** button beside each studio's title, then copy its displayed endpoint and client configuration. Database model changes must be saved before starting or stopping its server. The servers use MCP Streamable HTTP on loopback. The Database tools are `database_schema`, `database_list_records`, `database_get_record`, `database_create_record`, `database_update_record`, and `database_delete_record`. The Calendar tools are `calendar_get_context`, `calendar_list_people`, `calendar_list_events`, `calendar_get_event`, `calendar_find_availability`, `calendar_create_event`, `calendar_update_event`, `calendar_cancel_event`, and `calendar_respond_to_invitation`. Protocol-level tool listing and calls have been verified with MCP Inspector CLI 2.15.0; this is not a claim of compatibility with an untested agent host. To inspect a running server from a terminal:
 
 ```sh
 pnpm dlx @modelcontextprotocol/inspector@2.15.0 --cli \
@@ -76,6 +83,14 @@ pnpm dlx @modelcontextprotocol/inspector@2.15.0 --cli \
 ```
 
 Replace the example endpoint with the URL shown in Mockarium. In the Inspector UI, choose Streamable HTTP and enter the same URL.
+
+### Clearing Live Inspector
+
+Use **Clear view** to hide captured calls for the current workspace and reset
+the selection, filters, and counters. New calls continue to appear unless live
+capture is paused. Clearing is local to the current app session and survives
+studio navigation and pause/resume; it does not delete saved execution history.
+**Export** still includes the saved history. Reloading the app shows that history again.
 
 ## Current limitations
 

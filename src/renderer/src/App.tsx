@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent
 } from 'react'
@@ -99,6 +100,9 @@ function messageOf(error: unknown): string {
 }
 
 function App() {
+  const pageScrollRef = useRef<HTMLElement>(null)
+  const [studioActionsTarget, setStudioActionsTarget] =
+    useState<HTMLDivElement | null>(null)
   const [state, setState] = useState<InitialState | null>(null)
   const [page, setPage] = useState<Page>('Overview')
   const [dialog, setDialog] = useState<DialogMode>(null)
@@ -107,6 +111,9 @@ function App() {
   const [workspaceActionsOpen, setWorkspaceActionsOpen] = useState(false)
   const [folder, setFolder] = useState('Inbox')
   const [events, setEvents] = useState<ExecutionEvent[]>([])
+  const [clearedEventIds, setClearedEventIds] = useState<
+    Record<string, string[]>
+  >({})
   const [emails, setEmails] = useState<EmailMessage[]>([])
   const [databaseRevision, setDatabaseRevision] = useState(0)
   const [calendarRevision, setCalendarRevision] = useState(0)
@@ -145,6 +152,10 @@ function App() {
       server.workspaceId === state.activeWorkspaceId &&
       server.type === 'calendar'
   )
+
+  useEffect(() => {
+    pageScrollRef.current?.scrollTo(0, 0)
+  }, [page, state?.activeWorkspaceId])
 
   const refreshState = useCallback(async () => {
     const next = await window.mockarium.getInitialState()
@@ -430,9 +441,31 @@ function App() {
     void copyText(JSON.stringify(config, null, 2), 'Connection configuration')
   }
 
+  const inspectorEvents = useMemo(() => {
+    const hiddenIds = new Set(
+      clearedEventIds[state?.activeWorkspaceId ?? ''] ?? []
+    )
+    return events.filter((event) => !hiddenIds.has(event.id))
+  }, [clearedEventIds, events, state?.activeWorkspaceId])
+
+  const clearInspector = () => {
+    if (!activeWorkspace) return
+    setClearedEventIds((current) => ({
+      ...current,
+      [activeWorkspace.id]: events.map((event) => event.id)
+    }))
+    setSelectedEventId(null)
+    setSearch('')
+    setToolFilter('')
+    setStatusFilter('all')
+    setNotice(
+      'Inspector view cleared. Saved history is still available in Export.'
+    )
+  }
+
   const filteredEvents = useMemo(() => {
     const query = search.trim().toLowerCase()
-    return events.filter((event) => {
+    return inspectorEvents.filter((event) => {
       const matchesSearch =
         !query ||
         [
@@ -450,11 +483,11 @@ function App() {
         (statusFilter === 'success' ? event.success : !event.success)
       return matchesSearch && matchesTool && matchesStatus
     })
-  }, [events, search, statusFilter, toolFilter])
+  }, [inspectorEvents, search, statusFilter, toolFilter])
 
   const availableTools = useMemo(
-    () => [...new Set(events.map((event) => event.toolName))].sort(),
-    [events]
+    () => [...new Set(inspectorEvents.map((event) => event.toolName))].sort(),
+    [inspectorEvents]
   )
 
   const exportEvents = async () => {
@@ -479,6 +512,10 @@ function App() {
     setTheme((current) => (current === 'light' ? 'dark' : 'light'))
 
   const title = page === 'Live Inspector' ? 'Live Inspector' : page
+  const isStudioPage =
+    page === 'Email Studio' ||
+    page === 'Database Studio' ||
+    page === 'Calendar Studio'
   const hasRunningServer =
     state?.servers.some(
       (server) =>
@@ -609,9 +646,12 @@ function App() {
                   >
                     <Icon size={16} strokeWidth={1.8} />
                     <span>{label}</span>
-                    {label === 'Live Inspector' && events.length > 0 && (
-                      <span className="nav-count">{events.length}</span>
-                    )}
+                    {label === 'Live Inspector' &&
+                      inspectorEvents.length > 0 && (
+                        <span className="nav-count">
+                          {inspectorEvents.length}
+                        </span>
+                      )}
                   </button>
                 ))}
             </div>
@@ -708,17 +748,34 @@ function App() {
           </div>
         </header>
 
-        <section className="page-scroll">
-          <div className="page-heading">
-            <div>
+        <section className="page-scroll" ref={pageScrollRef}>
+          <div
+            className={`page-heading${isStudioPage ? ' page-heading-studio' : ''}`}
+          >
+            <div className="page-heading-copy">
               <div className="eyebrow">
                 {activeWorkspace ? 'WORKSPACE' : 'GET STARTED'}
               </div>
               <h1>{title}</h1>
               <p>{pageDescription[page]}</p>
             </div>
+            {isStudioPage && activeWorkspace && (
+              <div
+                className="studio-page-actions"
+                ref={setStudioActionsTarget}
+              />
+            )}
             {page === 'Live Inspector' && (
               <div className="inspector-actions">
+                <button
+                  className="button button-secondary"
+                  type="button"
+                  onClick={clearInspector}
+                  disabled={!activeWorkspace || inspectorEvents.length === 0}
+                  title="Hide captured calls for this workspace until the app reloads. Saved history is not deleted."
+                >
+                  <Trash2 size={15} /> Clear view
+                </button>
                 <button
                   className="button button-secondary"
                   type="button"
@@ -739,6 +796,7 @@ function App() {
                   className="button button-secondary"
                   type="button"
                   onClick={exportEvents}
+                  title="Export saved history, including calls hidden from this view"
                 >
                   <ArrowDownToLine size={15} /> Export
                 </button>
@@ -782,7 +840,7 @@ function App() {
           ) : page === 'Live Inspector' ? (
             <InspectorPage
               events={filteredEvents}
-              allEvents={events}
+              allEvents={inspectorEvents}
               selectedEventId={selectedEventId}
               onSelectEvent={setSelectedEventId}
               search={search}
@@ -797,6 +855,7 @@ function App() {
           ) : page === 'Email Studio' ? (
             <EmailStudio
               key={activeServer?.workspaceId ?? 'no-email-server'}
+              connectionTarget={studioActionsTarget}
               server={activeServer ?? null}
               emails={emails}
               busy={busy}
@@ -813,6 +872,7 @@ function App() {
             />
           ) : page === 'Database Studio' ? (
             <DatabaseStudio
+              connectionTarget={studioActionsTarget}
               model={state.databaseModel}
               server={activeDatabaseServer ?? null}
               busy={busy}
@@ -831,6 +891,7 @@ function App() {
           ) : page === 'Calendar Studio' ? (
             <CalendarStudio
               key={state.activeWorkspaceId ?? 'no-calendar'}
+              connectionTarget={studioActionsTarget}
               workspaceId={state.activeWorkspaceId ?? ''}
               server={activeCalendarServer ?? null}
               busy={busy}
@@ -1475,7 +1536,7 @@ function InspectorPage({
                 <span>
                   {allEvents.length
                     ? 'Try changing your search or filters.'
-                    : 'Start the Email server and connect an MCP client to see real tool calls here.'}
+                    : 'Start a studio server and connect an MCP client. New tool calls will appear here.'}
                 </span>
               </div>
             ) : (
