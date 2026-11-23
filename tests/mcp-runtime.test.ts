@@ -23,6 +23,81 @@ afterEach(() => {
 })
 
 describe('MCP Email runtime', () => {
+  it('discovers real tool schemas offline without executing tools or starting endpoints', async () => {
+    const database = createDatabase()
+    const workspace = database.createWorkspace('Tool explorer')
+    const otherWorkspace = database.createWorkspace('Other')
+    const servers = [
+      database.addEmailServer(workspace.id),
+      database.addDatabaseServer(workspace.id),
+      database.addCalendarServer(workspace.id)
+    ]
+    const events: ExecutionEvent[] = []
+    const runtime = new McpRuntime(database, (event) => events.push(event))
+    const before = {
+      emails: database.listEmails(workspace.id),
+      calendar: database.getCalendarState(workspace.id),
+      model: database.getDatabaseModel(workspace.id)
+    }
+
+    try {
+      for (const server of servers) {
+        const tools = await runtime.getMockServerTools(workspace.id, server.id)
+        expect(tools.length).toBeGreaterThan(0)
+        expect(tools.every((tool) => tool.description.length > 0)).toBe(true)
+        expect(runtime.getServer(workspace.id, server.id)?.running).toBe(false)
+        const running = await runtime.startMockServer(workspace.id, server.id)
+        const client = new Client({
+          name: 'catalog-parity-test',
+          version: '1.0.0'
+        })
+        try {
+          await client.connect(
+            new StreamableHTTPClientTransport(new URL(running.endpoint!))
+          )
+          const live = await client.listTools()
+          expect(tools).toEqual(
+            live.tools.map((tool) => ({
+              name: tool.name,
+              description: tool.description ?? '',
+              inputSchema: tool.inputSchema
+            }))
+          )
+        } finally {
+          await client.close()
+          await runtime.stopMockServer(workspace.id, server.id)
+        }
+      }
+      const calendarServer = servers[2]!
+      const calendarTools = await runtime.getMockServerTools(
+        workspace.id,
+        calendarServer.id
+      )
+      expect(
+        calendarTools.find((tool) => tool.name === 'calendar_get_context')
+          ?.inputSchema.properties
+      ).toEqual({})
+      expect(
+        calendarTools.find((tool) => tool.name === 'calendar_create_event')
+          ?.inputSchema.required
+      ).toEqual(expect.arrayContaining(['title', 'startAt', 'endAt']))
+      await expect(
+        runtime.getMockServerTools(otherWorkspace.id, calendarServer.id)
+      ).rejects.toThrow('not found in this workspace')
+      await expect(
+        runtime.getMockServerTools(workspace.id, otherWorkspace.id)
+      ).rejects.toThrow('not found in this workspace')
+      expect(events).toEqual([])
+      expect(database.listEvents(workspace.id)).toEqual([])
+      expect(database.listEmails(workspace.id)).toEqual(before.emails)
+      expect(database.getCalendarState(workspace.id)).toEqual(before.calendar)
+      expect(database.getDatabaseModel(workspace.id)).toEqual(before.model)
+    } finally {
+      await runtime.stopAll()
+      database.close()
+    }
+  })
+
   it('serves real stateful tool calls over Streamable HTTP and records execution events', async () => {
     const database = createDatabase()
     const workspace = database.createWorkspace('MCP integration')

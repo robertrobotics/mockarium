@@ -4,7 +4,14 @@ import {
   type IncomingMessage
 } from 'node:http'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
-import type { ExecutionEvent, MockServer } from '../shared/contracts'
+import { Client } from '@modelcontextprotocol/sdk/client/index.js'
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
+import type {
+  ExecutionEvent,
+  McpToolInfo,
+  MockServer
+} from '../shared/contracts'
+import { registerCalendarTools } from './calendar-service'
 import { AppDatabase } from './database'
 import { registerDatabaseTools } from './database-service'
 import { registerEmailTools } from './email-service'
@@ -14,6 +21,12 @@ interface RunningServer {
   server: HttpServer
   endpoint: string
   sessions: Set<() => Promise<void>>
+}
+
+const toolRegistrars = {
+  email: registerEmailTools,
+  database: registerDatabaseTools,
+  calendar: registerCalendarTools
 }
 
 export class McpRuntime {
@@ -143,6 +156,40 @@ export class McpRuntime {
     )
   }
 
+  async getMockServerTools(
+    workspaceId: string,
+    serverId: string
+  ): Promise<McpToolInfo[]> {
+    const storedServer = this.database.getMockServer(workspaceId, serverId)
+    if (!storedServer) {
+      throw new Error('Mock server was not found in this workspace.')
+    }
+    const server = toolRegistrars[storedServer.type](
+      this.database,
+      workspaceId,
+      this.onExecutionEvent
+    )
+    const client = new Client({
+      name: 'mockarium-tool-explorer',
+      version: '1.0.0'
+    })
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair()
+    try {
+      await server.connect(serverTransport)
+      await client.connect(clientTransport)
+      const { tools } = await client.listTools()
+      return tools.map((tool) => ({
+        name: tool.name,
+        description: tool.description ?? '',
+        inputSchema: tool.inputSchema
+      }))
+    } finally {
+      await client.close()
+      await server.close()
+    }
+  }
+
   private async handleRequest(
     request: IncomingMessage,
     response: import('node:http').ServerResponse,
@@ -163,14 +210,12 @@ export class McpRuntime {
       return
     }
     const transport = new StreamableHTTPServerTransport()
-    const mcpServer =
-      serverType === 'email'
-        ? registerEmailTools(this.database, workspaceId, this.onExecutionEvent)
-        : registerDatabaseTools(
-            this.database,
-            workspaceId,
-            this.onExecutionEvent
-          )
+    const register = toolRegistrars[serverType]
+    const mcpServer = register(
+      this.database,
+      workspaceId,
+      this.onExecutionEvent
+    )
     let closePromise: Promise<void> | null = null
     const closeSession = (): Promise<void> => {
       if (!closePromise) {

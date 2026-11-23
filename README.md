@@ -13,6 +13,7 @@ The initial release provides a functional vertical slice:
 - A stateful Email MCP server with search, retrieval, send, reply, draft, folders, and contacts tools.
 - Email Studio for customizing mailbox identity, messages, folders, and contacts used by those tools.
 - A stateful Database MCP server with schema discovery and validated record tools; it never exposes raw SQL.
+- Calendar Studio: a drag-and-drop week planner with people, time zones, working hours, invitations, and a simulated clock, backed by a Calendar MCP server.
 - Localhost MCP Streamable HTTP and a live inspector for actual requests and results.
 - Resettable mock data and persistent execution history.
 
@@ -49,9 +50,23 @@ Workspace data is stored in the operating system's application data directory. I
 
 Open **Email Studio** to create and customize the mailbox identity, messages, folders, and contacts your agent can explore. Start the Email server there and copy its endpoint or client configuration to your MCP client; use Live Inspector to observe tool calls. The simulated send/reply/draft tools use the saved mailbox identity and never contact a real email provider. **Restore starter mailbox** replaces the mailbox data while keeping execution history.
 
+Open **Calendar Studio** and choose **Create my starter calendar** to get a realistic week for Alex Morgan with colleagues in New York, Kolkata, and Los Angeles. Drag meetings to reschedule them, drag the bottom edge to resize, click an empty slot to add one, and set the simulated “now” your agent sees. Start the Calendar server, copy its configuration into your MCP client, and try: “Find a one-hour slot with Jordan this week, schedule a kickoff, and accept Priya's invitation.” Changes made by the agent glow in the week view and appear in the Agenda. No real invitations are ever sent.
+
 ## Connecting an MCP client
 
-Start a mock server in Mockarium and copy its displayed endpoint and client configuration. The servers use MCP Streamable HTTP on loopback. The Database tools are `database_schema`, `database_list_records`, `database_get_record`, `database_create_record`, `database_update_record`, and `database_delete_record`. Protocol-level tool listing and calls have been verified with MCP Inspector CLI 2.15.0; this is not a claim of compatibility with an untested agent host. To inspect a running server from a terminal:
+Each studio includes a compact, expandable **Agent toolkit**. Choose **Show tools**
+to search tools, expand a card to
+see required and optional inputs and limits, or copy the tool name and full JSON
+input schema. This catalog comes from the actual MCP registrations and works
+even with the server stopped. Tools share one MCP endpoint; they are not
+separate HTTP URLs. Customize studio data and identity to change their results;
+tool names and input definitions are currently built in, not editable.
+
+In Calendar Studio, use **Calendar setup** in the banner or sidebar to edit the
+owner, simulated clock, working hours, and people. Switch back to **Agenda** for
+invitations; creating or selecting an event opens its editor automatically.
+
+Use the **Start** button in the connection panel near the top of each studio, then copy its displayed endpoint and client configuration. Database model changes must be saved before starting or stopping its server. The servers use MCP Streamable HTTP on loopback. The Database tools are `database_schema`, `database_list_records`, `database_get_record`, `database_create_record`, `database_update_record`, and `database_delete_record`. The Calendar tools are `calendar_get_context`, `calendar_list_people`, `calendar_list_events`, `calendar_get_event`, `calendar_find_availability`, `calendar_create_event`, `calendar_update_event`, `calendar_cancel_event`, and `calendar_respond_to_invitation`. Protocol-level tool listing and calls have been verified with MCP Inspector CLI 2.15.0; this is not a claim of compatibility with an untested agent host. To inspect a running server from a terminal:
 
 ```sh
 pnpm dlx @modelcontextprotocol/inspector@2.15.0 --cli \

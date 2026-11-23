@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
+  CalendarState,
   DatabaseModel,
   DatabaseRecord,
   EmailContact,
@@ -8,6 +9,7 @@ import type {
   ExecutionEvent,
   InitialState,
   MockariumApi,
+  McpToolInfo,
   MockServer,
   Workspace
 } from '../shared/contracts'
@@ -15,6 +17,10 @@ import type {
 const api: MockariumApi = {
   getInitialState: () =>
     ipcRenderer.invoke('app:get-initial-state') as Promise<InitialState>,
+  getMockServerTools: (workspaceId, serverId) =>
+    ipcRenderer.invoke('server:tools', workspaceId, serverId) as Promise<
+      McpToolInfo[]
+    >,
   createWorkspace: (name) =>
     ipcRenderer.invoke('workspace:create', name) as Promise<Workspace>,
   renameWorkspace: (workspaceId, name) =>
@@ -134,6 +140,50 @@ const api: MockariumApi = {
     ) as Promise<void>,
   resetDatabase: (workspaceId) =>
     ipcRenderer.invoke('database:reset', workspaceId) as Promise<void>,
+  addCalendarServer: (workspaceId) =>
+    ipcRenderer.invoke(
+      'server:add-calendar',
+      workspaceId
+    ) as Promise<MockServer>,
+  getCalendar: (workspaceId) =>
+    ipcRenderer.invoke(
+      'calendar:get',
+      workspaceId
+    ) as Promise<CalendarState | null>,
+  saveCalendarProfile: (workspaceId, profile) =>
+    ipcRenderer.invoke(
+      'calendar:profile:save',
+      workspaceId,
+      profile
+    ) as Promise<CalendarState>,
+  saveCalendarPerson: (workspaceId, personId, person) =>
+    ipcRenderer.invoke(
+      'calendar:people:save',
+      workspaceId,
+      personId,
+      person
+    ) as Promise<CalendarState>,
+  deleteCalendarPerson: (workspaceId, personId) =>
+    ipcRenderer.invoke(
+      'calendar:people:delete',
+      workspaceId,
+      personId
+    ) as Promise<CalendarState>,
+  saveCalendarEvent: (workspaceId, eventId, event) =>
+    ipcRenderer.invoke(
+      'calendar:events:save',
+      workspaceId,
+      eventId,
+      event
+    ) as Promise<CalendarState>,
+  deleteCalendarEvent: (workspaceId, eventId) =>
+    ipcRenderer.invoke(
+      'calendar:events:delete',
+      workspaceId,
+      eventId
+    ) as Promise<CalendarState>,
+  resetCalendar: (workspaceId) =>
+    ipcRenderer.invoke('calendar:reset', workspaceId) as Promise<void>,
   getEvents: (workspaceId, limit) =>
     ipcRenderer.invoke('events:list', workspaceId, limit) as Promise<
       ExecutionEvent[]

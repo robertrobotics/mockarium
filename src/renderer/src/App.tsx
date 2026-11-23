@@ -9,6 +9,7 @@ import {
   Activity,
   ArrowDownToLine,
   ArrowRight,
+  CalendarDays,
   Check,
   ChevronDown,
   CircleHelp,
@@ -46,6 +47,7 @@ import type {
   MockServer,
   Workspace
 } from '../../shared/contracts'
+import { CalendarStudio } from './CalendarStudio'
 import { DatabaseStudio } from './DatabaseStudio'
 import { EmailStudio } from './EmailStudio'
 
@@ -53,6 +55,7 @@ type Page =
   | 'Overview'
   | 'Email Studio'
   | 'Database Studio'
+  | 'Calendar Studio'
   | 'Scenarios'
   | 'Live Inspector'
   | 'Test Runs'
@@ -67,6 +70,7 @@ const navigation: Array<{
   { label: 'Overview', icon: LayoutDashboard, section: 'Workspace' },
   { label: 'Email Studio', icon: Mail, section: 'Workspace' },
   { label: 'Database Studio', icon: Database, section: 'Workspace' },
+  { label: 'Calendar Studio', icon: CalendarDays, section: 'Workspace' },
   { label: 'Scenarios', icon: FileText, section: 'Testing' },
   { label: 'Live Inspector', icon: Activity, section: 'Testing' },
   { label: 'Test Runs', icon: Gauge, section: 'Testing' },
@@ -105,6 +109,7 @@ function App() {
   const [events, setEvents] = useState<ExecutionEvent[]>([])
   const [emails, setEmails] = useState<EmailMessage[]>([])
   const [databaseRevision, setDatabaseRevision] = useState(0)
+  const [calendarRevision, setCalendarRevision] = useState(0)
   const [search, setSearch] = useState('')
   const [toolFilter, setToolFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -134,6 +139,11 @@ function App() {
     (server) =>
       server.workspaceId === state.activeWorkspaceId &&
       server.type === 'database'
+  )
+  const activeCalendarServer = state?.servers.find(
+    (server) =>
+      server.workspaceId === state.activeWorkspaceId &&
+      server.type === 'calendar'
   )
 
   const refreshState = useCallback(async () => {
@@ -171,6 +181,9 @@ function App() {
           .catch((caught: unknown) => setError(messageOf(caught)))
         if (event.serverName === 'Database') {
           setDatabaseRevision((revision) => revision + 1)
+        }
+        if (event.serverName === 'Calendar') {
+          setCalendarRevision((revision) => revision + 1)
         }
       }
     })
@@ -276,7 +289,15 @@ function App() {
     }, 'Database studio created')
   }
 
-  const toggleServer = (server: MockServer | null = activeServer ?? null) => {
+  const addCalendarServer = () => {
+    const workspaceId = state?.activeWorkspaceId
+    if (!workspaceId) return
+    void runAction(async () => {
+      await window.mockarium.addCalendarServer(workspaceId)
+    }, 'Calendar studio created')
+  }
+
+  const toggleServer = (server: MockServer | null) => {
     if (!server || !state?.activeWorkspaceId) return
     void runAction(
       async () => {
@@ -343,6 +364,21 @@ function App() {
     )
   }
 
+  const resetCalendar = async (): Promise<boolean> => {
+    if (!activeWorkspace) return false
+    if (
+      !window.confirm(
+        'Restore the starter calendar? This replaces the owner, simulated clock, people, and events. Execution history will be kept.'
+      )
+    ) {
+      return false
+    }
+    return runAction(
+      () => window.mockarium.resetCalendar(activeWorkspace.id),
+      'Starter calendar restored. Execution history was preserved.'
+    )
+  }
+
   const copyText = async (value: string, label: string) => {
     try {
       await navigator.clipboard.writeText(value)
@@ -375,6 +411,19 @@ function App() {
         'mockarium-database': {
           type: 'http',
           url: activeDatabaseServer.endpoint
+        }
+      }
+    }
+    void copyText(JSON.stringify(config, null, 2), 'Connection configuration')
+  }
+
+  const copyCalendarConfig = () => {
+    if (!activeCalendarServer?.endpoint) return
+    const config = {
+      mcpServers: {
+        'mockarium-calendar': {
+          type: 'http',
+          url: activeCalendarServer.endpoint
         }
       }
     }
@@ -440,6 +489,8 @@ function App() {
     'Email Studio': 'Create, connect, and customize your simulated mailbox.',
     'Database Studio':
       'Shape a tiny business database and watch your agent use it.',
+    'Calendar Studio':
+      'Plan a realistic week and watch your agent schedule around it.',
     Scenarios: 'Define repeatable agent tests.',
     'Live Inspector': 'Observe real MCP tool calls as they happen.',
     'Test Runs': 'Review and compare scenario results.',
@@ -750,7 +801,7 @@ function App() {
               emails={emails}
               busy={busy}
               onAddServer={addEmailServer}
-              onToggleServer={() => toggleServer()}
+              onToggleServer={() => toggleServer(activeServer ?? null)}
               onReset={resetMailbox}
               onCopyEndpoint={() =>
                 activeServer?.endpoint &&
@@ -777,6 +828,23 @@ function App() {
               onOpenInspector={() => setPage('Live Inspector')}
               onSaveModel={saveDatabaseModel}
             />
+          ) : page === 'Calendar Studio' ? (
+            <CalendarStudio
+              key={state.activeWorkspaceId ?? 'no-calendar'}
+              workspaceId={state.activeWorkspaceId ?? ''}
+              server={activeCalendarServer ?? null}
+              busy={busy}
+              revision={calendarRevision}
+              onAddServer={addCalendarServer}
+              onToggleServer={() => toggleServer(activeCalendarServer ?? null)}
+              onReset={resetCalendar}
+              onCopyEndpoint={() =>
+                activeCalendarServer?.endpoint &&
+                void copyText(activeCalendarServer.endpoint, 'MCP endpoint')
+              }
+              onCopyConfig={copyCalendarConfig}
+              onOpenInspector={() => setPage('Live Inspector')}
+            />
           ) : page === 'Overview' ? (
             <OverviewPage
               workspace={activeWorkspace}
@@ -786,7 +854,7 @@ function App() {
               folder={folder}
               onFolderChange={setFolder}
               onAddServer={addEmailServer}
-              onToggleServer={toggleServer}
+              onToggleServer={() => toggleServer(activeServer ?? null)}
               onReset={() => void resetMailbox()}
               onCopyEndpoint={() =>
                 activeServer?.endpoint &&

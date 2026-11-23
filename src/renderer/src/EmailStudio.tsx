@@ -24,6 +24,7 @@ import type {
   EmailProfile,
   MockServer
 } from '../../shared/contracts'
+import { ToolExplorer } from './ToolExplorer'
 
 interface EmailStudioProps {
   server: MockServer | null
@@ -340,12 +341,29 @@ export function EmailStudio({
               </p>
             </div>
           </div>
-          <span
-            className={`tag-status ${server.running ? 'tag-running' : 'tag-stopped'}`}
-          >
-            <span className="status-dot" />
-            {server.running ? 'Running' : 'Stopped'}
-          </span>
+          <div className="studio-server-controls">
+            <span
+              className={`tag-status ${server.running ? 'tag-running' : 'tag-stopped'}`}
+            >
+              <span className="status-dot" />
+              {server.running ? 'Running' : 'Stopped'}
+            </span>
+            <button
+              className="button button-primary studio-server-button"
+              type="button"
+              onClick={onToggleServer}
+              disabled={busy || saving}
+            >
+              {busy ? (
+                <LoaderCircle className="spin" size={15} />
+              ) : server.running ? (
+                <Square size={13} />
+              ) : (
+                <Play size={15} />
+              )}
+              {server.running ? 'Stop email server' : 'Start email server'}
+            </button>
+          </div>
         </div>
         {server.running && server.endpoint && (
           <div className="email-connection-endpoint">
@@ -371,21 +389,6 @@ export function EmailStudio({
         )}
         <div className="email-connection-actions">
           <button
-            className="button button-primary"
-            type="button"
-            onClick={onToggleServer}
-            disabled={busy || saving}
-          >
-            {busy ? (
-              <LoaderCircle className="spin" size={15} />
-            ) : server.running ? (
-              <Square size={13} />
-            ) : (
-              <Play size={15} />
-            )}
-            {server.running ? 'Stop server' : 'Start server'}
-          </button>
-          <button
             className="button button-secondary"
             type="button"
             onClick={onOpenInspector}
@@ -406,7 +409,7 @@ export function EmailStudio({
         </div>
         <details className="email-connection-details">
           <summary>
-            <Wrench size={13} /> Connection details &amp; available tools
+            <Wrench size={13} /> Connection details
           </summary>
           <div className="email-connection-details-content">
             {server.running && server.endpoint ? (
@@ -447,25 +450,11 @@ export function EmailStudio({
                 Start the server to reveal its local endpoint and configuration.
               </p>
             )}
-            <div className="tool-list-heading">
-              AVAILABLE TOOLS <span>7 tools</span>
-            </div>
-            <div className="tool-chips">
-              {[
-                'search_emails',
-                'get_email',
-                'send_email',
-                'reply_to_email',
-                'create_draft',
-                'list_folders',
-                'list_contacts'
-              ].map((tool) => (
-                <span key={tool}>{tool}</span>
-              ))}
-            </div>
           </div>
         </details>
       </section>
+
+      <ToolExplorer key={server.id} server={server} />
 
       {loading ? (
         <div className="email-studio-loading">

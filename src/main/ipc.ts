@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { z } from 'zod'
 import type {
+  CalendarState,
   DatabaseModel,
   DatabaseRecord,
   EmailContact,
@@ -10,6 +11,12 @@ import type {
   MockServer
 } from '../shared/contracts'
 import { AppDatabase } from './database'
+import {
+  calendarEventInputSchema,
+  calendarPersonInputSchema,
+  calendarProfileSchema,
+  parseCalendarInput
+} from './calendar-model'
 import { databaseModelSchema } from './database-model'
 import {
   emailContactSchema,
@@ -56,6 +63,15 @@ export function registerIpcHandlers(
   }
 
   ipcMain.handle('app:get-initial-state', () => state())
+
+  ipcMain.handle(
+    'server:tools',
+    (_event, rawWorkspaceId: unknown, rawServerId: unknown) =>
+      runtime.getMockServerTools(
+        idSchema.parse(rawWorkspaceId),
+        idSchema.parse(rawServerId)
+      )
+  )
 
   ipcMain.handle('workspace:create', (_event, rawName: unknown) => {
     const name = nameSchema.parse(rawName)
@@ -345,6 +361,104 @@ export function registerIpcHandlers(
       database.deleteDatabaseRecord(workspaceId, tableName, recordId)
     }
   )
+
+  const calendarState = (workspaceId: string): CalendarState => {
+    const calendar = database.getCalendarState(workspaceId)
+    if (!calendar) throw new Error('Add the Calendar mock first.')
+    return calendar
+  }
+  const calendarItemId = z.string().min(1).max(100)
+
+  ipcMain.handle('server:add-calendar', (_event, rawWorkspaceId: unknown) => {
+    const workspaceId = idSchema.parse(rawWorkspaceId)
+    return database.addCalendarServer(workspaceId)
+  })
+
+  ipcMain.handle(
+    'calendar:get',
+    (_event, rawWorkspaceId: unknown): CalendarState | null =>
+      database.getCalendarState(idSchema.parse(rawWorkspaceId))
+  )
+
+  ipcMain.handle(
+    'calendar:profile:save',
+    (_event, rawWorkspaceId: unknown, rawProfile: unknown): CalendarState => {
+      const workspaceId = idSchema.parse(rawWorkspaceId)
+      database.saveCalendarProfile(
+        workspaceId,
+        parseCalendarInput(calendarProfileSchema, rawProfile)
+      )
+      return calendarState(workspaceId)
+    }
+  )
+
+  ipcMain.handle(
+    'calendar:people:save',
+    (
+      _event,
+      rawWorkspaceId: unknown,
+      rawPersonId: unknown,
+      rawPerson: unknown
+    ): CalendarState => {
+      const workspaceId = idSchema.parse(rawWorkspaceId)
+      const personId =
+        rawPersonId === null ? null : calendarItemId.parse(rawPersonId)
+      database.saveCalendarPerson(
+        workspaceId,
+        personId,
+        parseCalendarInput(calendarPersonInputSchema, rawPerson)
+      )
+      return calendarState(workspaceId)
+    }
+  )
+
+  ipcMain.handle(
+    'calendar:people:delete',
+    (_event, rawWorkspaceId: unknown, rawPersonId: unknown): CalendarState => {
+      const workspaceId = idSchema.parse(rawWorkspaceId)
+      database.deleteCalendarPerson(
+        workspaceId,
+        calendarItemId.parse(rawPersonId)
+      )
+      return calendarState(workspaceId)
+    }
+  )
+
+  ipcMain.handle(
+    'calendar:events:save',
+    (
+      _event,
+      rawWorkspaceId: unknown,
+      rawEventId: unknown,
+      rawEvent: unknown
+    ): CalendarState => {
+      const workspaceId = idSchema.parse(rawWorkspaceId)
+      const eventId =
+        rawEventId === null ? null : calendarItemId.parse(rawEventId)
+      database.saveCalendarEvent(
+        workspaceId,
+        eventId,
+        parseCalendarInput(calendarEventInputSchema, rawEvent)
+      )
+      return calendarState(workspaceId)
+    }
+  )
+
+  ipcMain.handle(
+    'calendar:events:delete',
+    (_event, rawWorkspaceId: unknown, rawEventId: unknown): CalendarState => {
+      const workspaceId = idSchema.parse(rawWorkspaceId)
+      database.deleteCalendarEvent(
+        workspaceId,
+        calendarItemId.parse(rawEventId)
+      )
+      return calendarState(workspaceId)
+    }
+  )
+
+  ipcMain.handle('calendar:reset', (_event, rawWorkspaceId: unknown) => {
+    database.resetCalendarState(idSchema.parse(rawWorkspaceId))
+  })
 
   ipcMain.handle('database:reset', (_event, rawWorkspaceId: unknown) => {
     const workspaceId = idSchema.parse(rawWorkspaceId)

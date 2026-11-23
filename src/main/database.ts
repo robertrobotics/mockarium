@@ -1,6 +1,12 @@
 import Database from 'better-sqlite3'
 import { randomUUID } from 'node:crypto'
 import type {
+  CalendarEvent,
+  CalendarEventInput,
+  CalendarPerson,
+  CalendarPersonInput,
+  CalendarProfile,
+  CalendarState,
   DatabaseModel,
   DatabaseRecord,
   EmailContact,
@@ -11,6 +17,15 @@ import type {
   MockServer,
   Workspace
 } from '../shared/contracts'
+import {
+  calendarEventInputSchema,
+  calendarPersonInputSchema,
+  calendarProfileSchema,
+  initialCalendarEvents,
+  initialCalendarPeople,
+  initialCalendarProfile,
+  parseCalendarInput
+} from './calendar-model'
 import { createDatabaseTemplate, databaseModelSchema } from './database-model'
 import {
   emailContactSchema,
@@ -102,7 +117,7 @@ export class AppDatabase {
       CREATE TABLE IF NOT EXISTS mock_servers (
         id TEXT PRIMARY KEY,
         workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-        type TEXT NOT NULL CHECK (type IN ('email', 'database')),
+        type TEXT NOT NULL CHECK (type IN ('email', 'database', 'calendar')),
         name TEXT NOT NULL,
         created_at TEXT NOT NULL,
         UNIQUE (workspace_id, type)
@@ -150,6 +165,43 @@ export class AppDatabase {
         values_json TEXT NOT NULL,
         PRIMARY KEY (workspace_id, table_name, id)
       );
+      CREATE TABLE IF NOT EXISTS calendar_profiles (
+        workspace_id TEXT PRIMARY KEY REFERENCES workspaces(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        time_zone TEXT NOT NULL,
+        work_start TEXT NOT NULL,
+        work_end TEXT NOT NULL,
+        simulated_time TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS calendar_people (
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        company TEXT NOT NULL,
+        time_zone TEXT NOT NULL,
+        work_start TEXT NOT NULL,
+        work_end TEXT NOT NULL,
+        PRIMARY KEY (workspace_id, id)
+      );
+      CREATE TABLE IF NOT EXISTS calendar_events (
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        location TEXT NOT NULL,
+        start_at TEXT NOT NULL,
+        end_at TEXT NOT NULL,
+        organizer_email TEXT NOT NULL,
+        attendees_json TEXT NOT NULL,
+        status TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        updated_by TEXT NOT NULL,
+        PRIMARY KEY (workspace_id, id)
+      );
+      CREATE INDEX IF NOT EXISTS calendar_events_workspace_time
+        ON calendar_events(workspace_id, start_at);
       CREATE TABLE IF NOT EXISTS execution_events (
         id TEXT PRIMARY KEY,
         workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -170,14 +222,14 @@ export class AppDatabase {
         "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'mock_servers'"
       )
       .get() as { sql: string } | undefined
-    if (serverSchema && !serverSchema.sql.includes("'database'")) {
+    if (serverSchema && !serverSchema.sql.includes("'calendar'")) {
       this.db.transaction(() => {
         this.db.exec(`
           ALTER TABLE mock_servers RENAME TO mock_servers_legacy;
           CREATE TABLE mock_servers (
             id TEXT PRIMARY KEY,
             workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-            type TEXT NOT NULL CHECK (type IN ('email', 'database')),
+            type TEXT NOT NULL CHECK (type IN ('email', 'database', 'calendar')),
             name TEXT NOT NULL,
             created_at TEXT NOT NULL,
             UNIQUE (workspace_id, type)
@@ -350,6 +402,49 @@ export class AppDatabase {
       }
     })()
     return server
+  }
+
+  addCalendarServer(workspaceId: string): MockServer {
+    this.getWorkspace(workspaceId)
+    if (this.getCalendarServer(workspaceId)) {
+      throw new Error('This workspace already has a Calendar mock server.')
+    }
+    const server: MockServer = {
+      id: randomUUID(),
+      workspaceId,
+      type: 'calendar',
+      name: 'Calendar',
+      createdAt: new Date().toISOString(),
+      running: false,
+      endpoint: null
+    }
+    this.db.transaction(() => {
+      this.db
+        .prepare(
+          'INSERT INTO mock_servers (id, workspace_id, type, name, created_at) VALUES (?, ?, ?, ?, ?)'
+        )
+        .run(
+          server.id,
+          server.workspaceId,
+          server.type,
+          server.name,
+          server.createdAt
+        )
+      this.seedCalendarState(workspaceId)
+    })()
+    return server
+  }
+
+  getCalendarServer(
+    workspaceId: string
+  ): Omit<MockServer, 'running' | 'endpoint'> | null {
+    const server = this.db
+      .prepare(
+        'SELECT id, workspace_id AS workspaceId, type, name, created_at AS createdAt FROM mock_servers WHERE workspace_id = ? AND type = ?'
+      )
+      .get(workspaceId, 'calendar') as
+      Omit<MockServer, 'running' | 'endpoint'> | undefined
+    return server ?? null
   }
 
   getMockServer(
@@ -1046,6 +1141,405 @@ export class AppDatabase {
         contact.name,
         contact.email,
         contact.company
+      )
+    }
+  }
+
+  private requireCalendarServer(workspaceId: string): void {
+    this.getWorkspace(workspaceId)
+    if (!this.getCalendarServer(workspaceId)) {
+      throw new Error('Add the Calendar mock before editing calendar data.')
+    }
+  }
+
+  getCalendarState(workspaceId: string): CalendarState | null {
+    this.getWorkspace(workspaceId)
+    if (!this.getCalendarServer(workspaceId)) return null
+    return {
+      profile: this.getCalendarProfile(workspaceId),
+      people: this.listCalendarPeople(workspaceId),
+      events: this.listCalendarEvents(workspaceId, { includeCancelled: true })
+    }
+  }
+
+  getCalendarProfile(workspaceId: string): CalendarProfile {
+    this.requireCalendarServer(workspaceId)
+    const profile = this.db
+      .prepare(
+        `SELECT name, email, time_zone AS timeZone, work_start AS workStart,
+          work_end AS workEnd, simulated_time AS currentTime
+         FROM calendar_profiles WHERE workspace_id = ?`
+      )
+      .get(workspaceId) as CalendarProfile | undefined
+    if (!profile) throw new Error('The calendar owner is missing.')
+    return profile
+  }
+
+  saveCalendarProfile(
+    workspaceId: string,
+    rawProfile: CalendarProfile
+  ): CalendarProfile {
+    this.requireCalendarServer(workspaceId)
+    const profile = parseCalendarInput(calendarProfileSchema, rawProfile)
+    const previous = this.getCalendarProfile(workspaceId)
+    const clash = this.listCalendarPeople(workspaceId).find(
+      (person) => person.email.toLowerCase() === profile.email.toLowerCase()
+    )
+    if (clash) {
+      throw new Error(
+        `${clash.name} already uses ${profile.email}. Choose another address for the calendar owner.`
+      )
+    }
+    this.db.transaction(() => {
+      this.db
+        .prepare(
+          `UPDATE calendar_profiles SET name = ?, email = ?, time_zone = ?, work_start = ?,
+            work_end = ?, simulated_time = ? WHERE workspace_id = ?`
+        )
+        .run(
+          profile.name,
+          profile.email,
+          profile.timeZone,
+          profile.workStart,
+          profile.workEnd,
+          profile.currentTime,
+          workspaceId
+        )
+      this.renameCalendarParticipant(workspaceId, previous.email, profile.email)
+    })()
+    return profile
+  }
+
+  listCalendarPeople(workspaceId: string): CalendarPerson[] {
+    return this.db
+      .prepare(
+        `SELECT id, name, email, company, time_zone AS timeZone,
+          work_start AS workStart, work_end AS workEnd
+         FROM calendar_people WHERE workspace_id = ? ORDER BY name COLLATE NOCASE`
+      )
+      .all(workspaceId) as CalendarPerson[]
+  }
+
+  saveCalendarPerson(
+    workspaceId: string,
+    personId: string | null,
+    rawPerson: CalendarPersonInput
+  ): CalendarPerson {
+    this.requireCalendarServer(workspaceId)
+    const person = parseCalendarInput(calendarPersonInputSchema, rawPerson)
+    const people = this.listCalendarPeople(workspaceId)
+    const existing = personId
+      ? people.find((candidate) => candidate.id === personId)
+      : undefined
+    if (personId && !existing) throw new Error('Person not found.')
+    if (!personId && people.length >= 50) {
+      throw new Error('A calendar can include up to 50 people.')
+    }
+    const email = person.email.toLowerCase()
+    if (
+      this.getCalendarProfile(workspaceId).email.toLowerCase() === email ||
+      people.some(
+        (candidate) =>
+          candidate.id !== personId && candidate.email.toLowerCase() === email
+      )
+    ) {
+      throw new Error('Someone in this calendar already uses that email.')
+    }
+    const id = personId ?? randomUUID()
+    this.db.transaction(() => {
+      this.db
+        .prepare(
+          `INSERT INTO calendar_people
+            (workspace_id, id, name, email, company, time_zone, work_start, work_end)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(workspace_id, id) DO UPDATE SET
+            name = excluded.name, email = excluded.email, company = excluded.company,
+            time_zone = excluded.time_zone, work_start = excluded.work_start,
+            work_end = excluded.work_end`
+        )
+        .run(
+          workspaceId,
+          id,
+          person.name,
+          person.email,
+          person.company,
+          person.timeZone,
+          person.workStart,
+          person.workEnd
+        )
+      if (existing) {
+        this.renameCalendarParticipant(
+          workspaceId,
+          existing.email,
+          person.email
+        )
+      }
+    })()
+    return { ...person, id }
+  }
+
+  deleteCalendarPerson(workspaceId: string, personId: string): void {
+    this.requireCalendarServer(workspaceId)
+    const person = this.listCalendarPeople(workspaceId).find(
+      (candidate) => candidate.id === personId
+    )
+    if (!person) throw new Error('Person not found.')
+    const email = person.email.toLowerCase()
+    const events = this.listCalendarEvents(workspaceId, {
+      includeCancelled: true
+    })
+    const organized = events.filter(
+      (event) => event.organizerEmail.toLowerCase() === email
+    )
+    if (organized.length > 0) {
+      throw new Error(
+        `${person.name} organizes ${organized.length} event${organized.length === 1 ? '' : 's'}. Change the organizer or delete ${organized.length === 1 ? 'it' : 'them'} first.`
+      )
+    }
+    this.db.transaction(() => {
+      for (const event of events) {
+        const attendees = event.attendees.filter(
+          (attendee) => attendee.email.toLowerCase() !== email
+        )
+        if (attendees.length !== event.attendees.length) {
+          this.db
+            .prepare(
+              'UPDATE calendar_events SET attendees_json = ? WHERE workspace_id = ? AND id = ?'
+            )
+            .run(JSON.stringify(attendees), workspaceId, event.id)
+        }
+      }
+      this.db
+        .prepare(
+          'DELETE FROM calendar_people WHERE workspace_id = ? AND id = ?'
+        )
+        .run(workspaceId, personId)
+    })()
+  }
+
+  private renameCalendarParticipant(
+    workspaceId: string,
+    previousEmail: string,
+    nextEmail: string
+  ): void {
+    if (previousEmail === nextEmail) return
+    const previous = previousEmail.toLowerCase()
+    for (const event of this.listCalendarEvents(workspaceId, {
+      includeCancelled: true
+    })) {
+      const organizerEmail =
+        event.organizerEmail.toLowerCase() === previous
+          ? nextEmail
+          : event.organizerEmail
+      const attendees = event.attendees.map((attendee) =>
+        attendee.email.toLowerCase() === previous
+          ? { ...attendee, email: nextEmail }
+          : attendee
+      )
+      this.db
+        .prepare(
+          'UPDATE calendar_events SET organizer_email = ?, attendees_json = ? WHERE workspace_id = ? AND id = ?'
+        )
+        .run(organizerEmail, JSON.stringify(attendees), workspaceId, event.id)
+    }
+  }
+
+  listCalendarEvents(
+    workspaceId: string,
+    options: {
+      from?: string | undefined
+      to?: string | undefined
+      query?: string | undefined
+      participant?: string | undefined
+      includeCancelled?: boolean | undefined
+    } = {}
+  ): CalendarEvent[] {
+    const conditions = ['workspace_id = ?']
+    const params: string[] = [workspaceId]
+    if (options.to) {
+      conditions.push('start_at < ?')
+      params.push(new Date(options.to).toISOString())
+    }
+    if (options.from) {
+      conditions.push('end_at > ?')
+      params.push(new Date(options.from).toISOString())
+    }
+    if (!options.includeCancelled) conditions.push("status = 'confirmed'")
+    if (options.query) {
+      conditions.push(
+        '(instr(lower(title), lower(?)) > 0 OR instr(lower(description), lower(?)) > 0 OR instr(lower(location), lower(?)) > 0)'
+      )
+      params.push(options.query, options.query, options.query)
+    }
+    const rows = this.db
+      .prepare(
+        `SELECT id, title, description, location, start_at AS startAt, end_at AS endAt,
+          organizer_email AS organizerEmail, attendees_json AS attendeesJson, status,
+          updated_at AS updatedAt, updated_by AS updatedBy
+         FROM calendar_events WHERE ${conditions.join(' AND ')}
+         ORDER BY start_at, title`
+      )
+      .all(...params) as Array<
+      Omit<CalendarEvent, 'attendees'> & { attendeesJson: string }
+    >
+    const events = rows.map(({ attendeesJson, ...event }) => ({
+      ...event,
+      attendees: JSON.parse(attendeesJson) as CalendarEvent['attendees']
+    }))
+    const participant = options.participant?.toLowerCase()
+    return participant
+      ? events.filter(
+          (event) =>
+            event.organizerEmail.toLowerCase() === participant ||
+            event.attendees.some(
+              (attendee) => attendee.email.toLowerCase() === participant
+            )
+        )
+      : events
+  }
+
+  getCalendarEvent(workspaceId: string, eventId: string): CalendarEvent | null {
+    return (
+      this.listCalendarEvents(workspaceId, { includeCancelled: true }).find(
+        (event) => event.id === eventId
+      ) ?? null
+    )
+  }
+
+  saveCalendarEvent(
+    workspaceId: string,
+    eventId: string | null,
+    rawEvent: CalendarEventInput,
+    updatedBy: CalendarEvent['updatedBy'] = 'studio'
+  ): CalendarEvent {
+    this.requireCalendarServer(workspaceId)
+    const event = parseCalendarInput(calendarEventInputSchema, rawEvent)
+    if (eventId && !this.getCalendarEvent(workspaceId, eventId)) {
+      throw new Error('Event not found.')
+    }
+    if (!eventId) {
+      const count = this.db
+        .prepare(
+          'SELECT COUNT(*) AS count FROM calendar_events WHERE workspace_id = ?'
+        )
+        .get(workspaceId) as { count: number }
+      if (count.count >= 500) {
+        throw new Error('A calendar can hold up to 500 events.')
+      }
+    }
+    const saved: CalendarEvent = {
+      ...event,
+      id: eventId ?? randomUUID(),
+      updatedAt: new Date().toISOString(),
+      updatedBy
+    }
+    this.db
+      .prepare(
+        `INSERT INTO calendar_events
+          (workspace_id, id, title, description, location, start_at, end_at,
+           organizer_email, attendees_json, status, updated_at, updated_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(workspace_id, id) DO UPDATE SET
+          title = excluded.title, description = excluded.description,
+          location = excluded.location, start_at = excluded.start_at,
+          end_at = excluded.end_at, organizer_email = excluded.organizer_email,
+          attendees_json = excluded.attendees_json, status = excluded.status,
+          updated_at = excluded.updated_at, updated_by = excluded.updated_by`
+      )
+      .run(
+        workspaceId,
+        saved.id,
+        saved.title,
+        saved.description,
+        saved.location,
+        saved.startAt,
+        saved.endAt,
+        saved.organizerEmail,
+        JSON.stringify(saved.attendees),
+        saved.status,
+        saved.updatedAt,
+        saved.updatedBy
+      )
+    return saved
+  }
+
+  deleteCalendarEvent(workspaceId: string, eventId: string): void {
+    this.requireCalendarServer(workspaceId)
+    const result = this.db
+      .prepare('DELETE FROM calendar_events WHERE workspace_id = ? AND id = ?')
+      .run(workspaceId, eventId)
+    if (result.changes === 0) throw new Error('Event not found.')
+  }
+
+  resetCalendarState(workspaceId: string): void {
+    this.requireCalendarServer(workspaceId)
+    this.db.transaction(() => {
+      for (const table of [
+        'calendar_events',
+        'calendar_people',
+        'calendar_profiles'
+      ]) {
+        this.db
+          .prepare(`DELETE FROM ${table} WHERE workspace_id = ?`)
+          .run(workspaceId)
+      }
+      this.seedCalendarState(workspaceId)
+    })()
+  }
+
+  private seedCalendarState(workspaceId: string): void {
+    const profile = initialCalendarProfile
+    this.db
+      .prepare(
+        `INSERT INTO calendar_profiles
+          (workspace_id, name, email, time_zone, work_start, work_end, simulated_time)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        workspaceId,
+        profile.name,
+        profile.email,
+        profile.timeZone,
+        profile.workStart,
+        profile.workEnd,
+        profile.currentTime
+      )
+    const insertPerson = this.db.prepare(
+      `INSERT INTO calendar_people
+        (workspace_id, id, name, email, company, time_zone, work_start, work_end)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    for (const person of initialCalendarPeople) {
+      insertPerson.run(
+        workspaceId,
+        person.id,
+        person.name,
+        person.email,
+        person.company,
+        person.timeZone,
+        person.workStart,
+        person.workEnd
+      )
+    }
+    const insertEvent = this.db.prepare(
+      `INSERT INTO calendar_events
+        (workspace_id, id, title, description, location, start_at, end_at,
+         organizer_email, attendees_json, status, updated_at, updated_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'studio')`
+    )
+    for (const event of initialCalendarEvents) {
+      insertEvent.run(
+        workspaceId,
+        event.id,
+        event.title,
+        event.description,
+        event.location,
+        event.startAt,
+        event.endAt,
+        event.organizerEmail,
+        JSON.stringify(event.attendees),
+        event.status,
+        profile.currentTime
       )
     }
   }

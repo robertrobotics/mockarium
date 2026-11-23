@@ -22,8 +22,7 @@ import {
   Sparkles,
   Square,
   Table2,
-  Trash2,
-  Wrench
+  Trash2
 } from 'lucide-react'
 import type {
   DatabaseField,
@@ -33,6 +32,7 @@ import type {
   DatabaseTable,
   MockServer
 } from '../../shared/contracts'
+import { ToolExplorer } from './ToolExplorer'
 
 const fieldTypes: Array<{ value: DatabaseFieldType; label: string }> = [
   { value: 'text', label: 'Text' },
@@ -644,6 +644,91 @@ export function DatabaseStudio({
         </div>
       </section>
 
+      <section className="database-connection-row">
+        <div className="database-connection-card panel">
+          <div className="database-connection-icon">
+            <Database size={17} />
+          </div>
+          <div className="database-connection-copy">
+            <span className="eyebrow">REAL AGENT · FAKE DATABASE</span>
+            <strong>
+              {server.running
+                ? 'Your database is ready to explore'
+                : 'Start the database for your agent'}
+            </strong>
+            <span>
+              {modelChanged
+                ? 'Save your model changes before starting or stopping the server.'
+                : 'Only this workspace’s simulated records are available. No raw SQL or production connection.'}
+            </span>
+          </div>
+          <span
+            className={`tag-status ${server.running ? 'tag-running' : 'tag-stopped'}`}
+          >
+            <span className="status-dot" />
+            {server.running ? 'Running' : 'Stopped'}
+          </span>
+          <button
+            className="button button-primary studio-server-button"
+            type="button"
+            onClick={onToggleServer}
+            disabled={busy || modelChanged}
+            title={
+              modelChanged
+                ? 'Save your model changes before starting or stopping the server'
+                : undefined
+            }
+          >
+            {busy ? (
+              <LoaderCircle className="spin" size={14} />
+            ) : server.running ? (
+              <Square size={13} />
+            ) : (
+              <ArrowRight size={14} />
+            )}
+            {server.running ? 'Stop database server' : 'Start database server'}
+          </button>
+          {server.running && (
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={onOpenInspector}
+            >
+              <Activity size={14} /> Inspector
+            </button>
+          )}
+          <button
+            className="button button-quiet button-small"
+            type="button"
+            onClick={onReset}
+          >
+            <RotateCcw size={14} /> Restore starter
+          </button>
+        </div>
+        {server.running && server.endpoint && (
+          <div className="database-endpoint panel">
+            <div>
+              <span className="eyebrow">STREAMABLE HTTP · LOOPBACK ONLY</span>
+              <code>{server.endpoint}</code>
+            </div>
+            <button
+              className="button button-secondary button-small"
+              type="button"
+              onClick={onCopyEndpoint}
+            >
+              <Copy size={13} /> Copy URL
+            </button>
+            <button
+              className="button button-quiet button-small"
+              type="button"
+              onClick={onCopyConfig}
+            >
+              <Copy size={13} /> Copy config
+            </button>
+          </div>
+        )}
+      </section>
+
       <section className="database-model-map panel">
         <div className="database-map-heading">
           <div>
@@ -1166,115 +1251,7 @@ export function DatabaseStudio({
         </section>
       </div>
 
-      <section className="database-connection-row">
-        <div className="database-connection-card panel">
-          <div className="database-connection-icon">
-            <Database size={17} />
-          </div>
-          <div className="database-connection-copy">
-            <span className="eyebrow">REAL AGENT · FAKE DATABASE</span>
-            <strong>
-              {server.running
-                ? 'Your database is ready to explore'
-                : 'Start the database for your agent'}
-            </strong>
-            <span>
-              Only this workspace’s simulated records are available. No raw SQL
-              or production connection.
-            </span>
-          </div>
-          <span
-            className={`tag-status ${server.running ? 'tag-running' : 'tag-stopped'}`}
-          >
-            <span className="status-dot" />
-            {server.running ? 'Running' : 'Stopped'}
-          </span>
-          <button
-            className="button button-primary"
-            type="button"
-            onClick={onToggleServer}
-            disabled={busy || modelChanged}
-            title={
-              modelChanged
-                ? 'Save your model changes before starting the server'
-                : undefined
-            }
-          >
-            {busy ? (
-              <LoaderCircle className="spin" size={14} />
-            ) : server.running ? (
-              <Square size={13} />
-            ) : (
-              <ArrowRight size={14} />
-            )}
-            {server.running ? 'Stop server' : 'Start server'}
-          </button>
-          {server.running && (
-            <button
-              className="button button-secondary"
-              type="button"
-              onClick={onOpenInspector}
-            >
-              <Activity size={14} /> Inspector
-            </button>
-          )}
-          <button
-            className="button button-quiet button-small"
-            type="button"
-            onClick={onReset}
-          >
-            <RotateCcw size={14} /> Restore starter
-          </button>
-        </div>
-        {server.running && server.endpoint && (
-          <div className="database-endpoint panel">
-            <div>
-              <span className="eyebrow">STREAMABLE HTTP · LOOPBACK ONLY</span>
-              <code>{server.endpoint}</code>
-            </div>
-            <button
-              className="button button-secondary button-small"
-              type="button"
-              onClick={onCopyEndpoint}
-            >
-              <Copy size={13} /> Copy URL
-            </button>
-            <button
-              className="button button-quiet button-small"
-              type="button"
-              onClick={onCopyConfig}
-            >
-              <Copy size={13} /> Copy config
-            </button>
-          </div>
-        )}
-      </section>
-
-      <section className="database-tools-card panel">
-        <div>
-          <span className="eyebrow">SAFE MCP TOOLKIT</span>
-          <h3>Tools shaped by your model</h3>
-          <p>
-            The agent can inspect the schema, search records, and make
-            structured changes. Every call appears in Live Inspector.
-          </p>
-        </div>
-        <div className="database-tool-chips">
-          {[
-            'database_schema',
-            'database_list_records',
-            'database_get_record',
-            'database_create_record',
-            'database_update_record',
-            'database_delete_record'
-          ].map((tool) => (
-            <span key={tool}>
-              <Wrench size={12} />
-              {tool}
-            </span>
-          ))}
-        </div>
-      </section>
+      <ToolExplorer key={server.id} server={server} />
       <div className="database-safe-note">
         <ShieldCheck size={15} />
         <span>

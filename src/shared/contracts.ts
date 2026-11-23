@@ -8,7 +8,7 @@ export interface Workspace {
 export interface MockServer {
   id: string
   workspaceId: string
-  type: 'email' | 'database'
+  type: 'email' | 'database' | 'calendar'
   name: string
   createdAt: string
   running: boolean
@@ -78,6 +78,59 @@ export interface EmailContact {
   company: string
 }
 
+export type CalendarResponse =
+  'needsAction' | 'accepted' | 'declined' | 'tentative'
+
+export interface CalendarAttendee {
+  email: string
+  response: CalendarResponse
+}
+
+export interface CalendarProfile {
+  name: string
+  email: string
+  timeZone: string
+  workStart: string
+  workEnd: string
+  currentTime: string
+}
+
+export interface CalendarPersonInput {
+  name: string
+  email: string
+  company: string
+  timeZone: string
+  workStart: string
+  workEnd: string
+}
+
+export interface CalendarPerson extends CalendarPersonInput {
+  id: string
+}
+
+export interface CalendarEventInput {
+  title: string
+  description: string
+  location: string
+  startAt: string
+  endAt: string
+  organizerEmail: string
+  attendees: CalendarAttendee[]
+  status: 'confirmed' | 'cancelled'
+}
+
+export interface CalendarEvent extends CalendarEventInput {
+  id: string
+  updatedAt: string
+  updatedBy: 'studio' | 'agent'
+}
+
+export interface CalendarState {
+  profile: CalendarProfile
+  people: CalendarPerson[]
+  events: CalendarEvent[]
+}
+
 export interface ExecutionEvent {
   id: string
   workspaceId: string
@@ -89,6 +142,17 @@ export interface ExecutionEvent {
   success: boolean
   error: string | null
   createdAt: string
+}
+
+export interface McpToolInfo {
+  name: string
+  description: string
+  inputSchema: {
+    type: 'object'
+    properties?: Record<string, unknown> | undefined
+    required?: string[] | undefined
+    [key: string]: unknown
+  }
 }
 
 export interface InitialState {
@@ -110,6 +174,10 @@ export interface MockariumApi {
   addDatabaseServer(workspaceId: string): Promise<MockServer>
   startMockServer(workspaceId: string, serverId: string): Promise<MockServer>
   stopMockServer(workspaceId: string, serverId: string): Promise<MockServer>
+  getMockServerTools(
+    workspaceId: string,
+    serverId: string
+  ): Promise<McpToolInfo[]>
   resetEmailServer(workspaceId: string): Promise<void>
   getDatabaseModel(workspaceId: string): Promise<DatabaseModel | null>
   saveDatabaseModel(
@@ -157,6 +225,31 @@ export interface MockariumApi {
   ): Promise<EmailMessage>
   deleteEmail(workspaceId: string, emailId: string): Promise<void>
   getEmails(workspaceId: string, folder?: string): Promise<EmailMessage[]>
+  addCalendarServer(workspaceId: string): Promise<MockServer>
+  getCalendar(workspaceId: string): Promise<CalendarState | null>
+  saveCalendarProfile(
+    workspaceId: string,
+    profile: CalendarProfile
+  ): Promise<CalendarState>
+  saveCalendarPerson(
+    workspaceId: string,
+    personId: string | null,
+    person: CalendarPersonInput
+  ): Promise<CalendarState>
+  deleteCalendarPerson(
+    workspaceId: string,
+    personId: string
+  ): Promise<CalendarState>
+  saveCalendarEvent(
+    workspaceId: string,
+    eventId: string | null,
+    event: CalendarEventInput
+  ): Promise<CalendarState>
+  deleteCalendarEvent(
+    workspaceId: string,
+    eventId: string
+  ): Promise<CalendarState>
+  resetCalendar(workspaceId: string): Promise<void>
   getEvents(workspaceId: string, limit?: number): Promise<ExecutionEvent[]>
   onExecutionEvent(callback: (event: ExecutionEvent) => void): () => void
 }

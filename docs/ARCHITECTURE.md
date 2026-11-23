@@ -11,7 +11,7 @@
 
 ## Persistence
 
-SQLite stores workspaces, configured mock servers, email profiles, messages, folders, contacts, JSON-backed database models and records, and bounded execution history. Mock data is associated with a workspace. Email Studio changes the state consumed by the Email MCP tools, including the sender identity used for simulated outgoing messages. Database model names are validated and are never interpolated into SQL; all database-agent operations are structured record operations. Reset restores the starter mailbox or database while retaining execution history.
+SQLite stores workspaces, configured mock servers, email profiles, messages, folders, contacts, JSON-backed database models and records, calendar owners, people, and events, and bounded execution history. Mock data is associated with a workspace. Email Studio changes the state consumed by the Email MCP tools, including the sender identity used for simulated outgoing messages. Database model names are validated and are never interpolated into SQL; all database-agent operations are structured record operations. Calendar times are stored as UTC instants and displayed in the owner's time zone; availability honours each person's working hours in their own time zone and the workspace's simulated clock. Reset restores the starter mailbox, database, or calendar while retaining execution history.
 
 ## Runtime events
 
