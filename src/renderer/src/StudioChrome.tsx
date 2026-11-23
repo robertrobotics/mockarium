@@ -128,13 +128,21 @@ export function StudioConnection({
       role="group"
       aria-label={`${server.name} server connection`}
     >
-      <span
-        className={`tag-status ${server.running ? 'tag-running' : 'tag-stopped'}`}
-        role="status"
-      >
-        <span className="status-dot" />
-        {server.running ? 'Running' : 'Stopped'}
-      </span>
+      <div className="studio-server-state">
+        <span
+          className={`tag-status ${server.running ? 'tag-running' : 'tag-stopped'}`}
+          role="status"
+        >
+          <span className="status-dot" />
+          {server.running ? 'Running' : 'Stopped'}
+        </span>
+        <span
+          className="studio-server-transport"
+          aria-label="Streamable HTTP server"
+        >
+          Streamable HTTP
+        </span>
+      </div>
       <button
         className="button button-primary studio-server-button"
         type="button"
@@ -193,7 +201,7 @@ export function StudioConnection({
           </div>
           <div className="studio-endpoint">
             <div className="studio-endpoint-address">
-              <span className="eyebrow">LOCAL MCP ENDPOINT</span>
+              <span className="eyebrow">STREAMABLE HTTP MCP ENDPOINT</span>
               {endpoint ? (
                 <code>{endpoint}</code>
               ) : (

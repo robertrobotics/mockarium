@@ -67,11 +67,16 @@ owner, simulated clock, working hours, and people. Switch back to **Agenda** for
 invitations; creating or selecting an event opens its editor automatically.
 
 All studios share the same top-level layout: server status and Start/Stop
-controls beside the studio title, a **Design** banner with a setup shortcut,
-and the expandable **Agent toolkit**. Running servers show their address and
-copy actions beside the title. Open **Connection** there for the full endpoint,
-client configuration, Live Inspector, and restore controls. Setup shortcuts jump
-to each studio's design controls.
+controls beside the studio title, a visible **Streamable HTTP** transport label,
+a **Design** banner with a setup shortcut, and the expandable **Agent toolkit**.
+Running servers show their address and copy actions beside the title. Open
+**Connection** there for the full endpoint, client configuration, Live Inspector,
+and restore controls. Setup shortcuts jump to each studio's design controls.
+The Overview shows matching cards for all three studios, each with a clear
+**Running** or **Not running** status, **Start/Stop server**, and **Open studio**
+buttons. Starting a studio for the first time creates its starter data. Endpoints
+and settings are available inside the individual studios; mailbox content and
+execution details stay in Email Studio and Live Inspector.
 
 Use the **Start** button beside each studio's title, then copy its displayed endpoint and client configuration. Database model changes must be saved before starting or stopping its server. The servers use MCP Streamable HTTP on loopback. The Database tools are `database_schema`, `database_list_records`, `database_get_record`, `database_create_record`, `database_update_record`, and `database_delete_record`. The Calendar tools are `calendar_get_context`, `calendar_list_people`, `calendar_list_events`, `calendar_get_event`, `calendar_find_availability`, `calendar_create_event`, `calendar_update_event`, `calendar_cancel_event`, and `calendar_respond_to_invitation`. Protocol-level tool listing and calls have been verified with MCP Inspector CLI 2.15.0; this is not a claim of compatibility with an untested agent host. To inspect a running server from a terminal:
 

@@ -15,13 +15,11 @@ import {
   ChevronDown,
   CircleHelp,
   Clock3,
-  Copy,
   Database,
   Ellipsis,
   FileText,
   FolderOpen,
   Gauge,
-  Inbox,
   LayoutDashboard,
   LoaderCircle,
   Mail,
@@ -37,8 +35,7 @@ import {
   Sun,
   Trash2,
   Wrench,
-  X,
-  Zap
+  X
 } from 'lucide-react'
 import type {
   DatabaseModel,
@@ -109,7 +106,6 @@ function App() {
   const [workspaceName, setWorkspaceName] = useState('')
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false)
   const [workspaceActionsOpen, setWorkspaceActionsOpen] = useState(false)
-  const [folder, setFolder] = useState('Inbox')
   const [events, setEvents] = useState<ExecutionEvent[]>([])
   const [clearedEventIds, setClearedEventIds] = useState<
     Record<string, string[]>
@@ -237,7 +233,6 @@ function App() {
 
   const selectWorkspace = (workspaceId: string) => {
     setWorkspaceMenuOpen(false)
-    setFolder('Inbox')
     setPage('Overview')
     void runAction(async () => {
       const next = await window.mockarium.selectWorkspace(workspaceId)
@@ -321,6 +316,31 @@ function App() {
       server.running
         ? `${server.name} server stopped`
         : `${server.name} server started`
+    )
+  }
+
+  const toggleOverviewServer = (
+    type: MockServer['type'],
+    server: MockServer | null
+  ) => {
+    if (server) {
+      toggleServer(server)
+      return
+    }
+    const workspaceId = state?.activeWorkspaceId
+    if (!workspaceId) return
+    void runAction(
+      async () => {
+        const created =
+          type === 'email'
+            ? await window.mockarium.addEmailServer(workspaceId)
+            : type === 'database'
+              ? await window.mockarium.addDatabaseServer(workspaceId)
+              : await window.mockarium.addCalendarServer(workspaceId)
+        await refreshState()
+        await window.mockarium.startMockServer(workspaceId, created.id)
+      },
+      `${type.charAt(0).toUpperCase()}${type.slice(1)} server started`
     )
   }
 
@@ -910,19 +930,11 @@ function App() {
             <OverviewPage
               workspace={activeWorkspace}
               server={activeServer ?? null}
+              databaseServer={activeDatabaseServer ?? null}
+              calendarServer={activeCalendarServer ?? null}
               events={events}
-              emails={emails}
-              folder={folder}
-              onFolderChange={setFolder}
-              onAddServer={addEmailServer}
-              onToggleServer={() => toggleServer(activeServer ?? null)}
-              onReset={() => void resetMailbox()}
-              onCopyEndpoint={() =>
-                activeServer?.endpoint &&
-                void copyText(activeServer.endpoint, 'MCP endpoint')
-              }
-              onCopyConfig={copyConfig}
               onNavigate={setPage}
+              onToggleServer={toggleOverviewServer}
               busy={busy}
             />
           ) : (
@@ -985,438 +997,163 @@ function EmptyWorkspace({ onCreate }: { onCreate: () => void }) {
   )
 }
 
-function OverviewPage({
+export function OverviewPage({
   workspace,
   server,
+  databaseServer,
+  calendarServer,
   events,
-  emails,
-  folder,
-  onFolderChange,
-  onAddServer,
-  onToggleServer,
-  onReset,
-  onCopyEndpoint,
-  onCopyConfig,
   onNavigate,
+  onToggleServer,
   busy
 }: {
   workspace: Workspace
   server: MockServer | null
+  databaseServer: MockServer | null
+  calendarServer: MockServer | null
   events: ExecutionEvent[]
-  emails: EmailMessage[]
-  folder: string
-  onFolderChange: (folder: string) => void
-  onAddServer: () => void
-  onToggleServer: () => void
-  onReset: () => void
-  onCopyEndpoint: () => void
-  onCopyConfig: () => void
   onNavigate: (page: Page) => void
+  onToggleServer: (type: MockServer['type'], server: MockServer | null) => void
   busy: boolean
 }) {
-  const latestEvent = events[0]
-  const sentCount = emails.filter((email) => email.folder === 'Sent').length
-  const inboxCount = emails.filter((email) => email.folder === 'Inbox').length
+  const studios = [
+    {
+      type: 'email',
+      name: 'Email',
+      icon: Mail,
+      page: 'Email Studio',
+      description: 'A believable inbox for every conversation.',
+      detail: 'Messages · folders · contacts',
+      server
+    },
+    {
+      type: 'database',
+      name: 'Database',
+      icon: Database,
+      page: 'Database Studio',
+      description: 'A little world of connected, editable data.',
+      detail: 'Tables · records · relationships',
+      server: databaseServer
+    },
+    {
+      type: 'calendar',
+      name: 'Calendar',
+      icon: CalendarDays,
+      page: 'Calendar Studio',
+      description: 'A realistic schedule for your agent to explore.',
+      detail: 'Events · people · availability',
+      server: calendarServer
+    }
+  ] as const
+  const runningCount = studios.filter((studio) => studio.server?.running).length
+
   return (
-    <>
-      <div className="welcome-banner">
-        <div className="welcome-copy">
-          <div className="welcome-icon">
-            <Sparkles size={18} />
+    <div className="overview">
+      <section className="overview-hero" aria-label="Workspace snapshot">
+        <div className="overview-hero-copy">
+          <div className="overview-hero-kicker">
+            <Sparkles size={13} /> YOUR LOCAL WORKSPACE
           </div>
-          <div>
-            <span className="eyebrow">LOCAL TEST ENVIRONMENT</span>
-            <h2>
-              {workspace.name}
-              <span className="welcome-period">.</span>
-            </h2>
-            <p>
-              Your agent's world is simulated. Production systems stay
-              untouched.
-            </p>
-          </div>
-        </div>
-        <div className="welcome-art" aria-hidden="true">
-          <div className="orbit orbit-one" />
-          <div className="orbit orbit-two" />
-          <div className="orbit-core">
-            <Mail size={24} />
-          </div>
-          <span className="orbit-node node-one">
-            <Server size={13} />
-          </span>
-          <span className="orbit-node node-two">
-            <Activity size={13} />
-          </span>
-        </div>
-      </div>
-
-      <div className="section-title-row">
-        <div>
-          <h2 className="section-title">Environment</h2>
-          <p className="section-subtitle">
-            A snapshot of your active mock systems.
+          <h2>{workspace.name}</h2>
+          <p>
+            Build a world for your agent to explore, without touching
+            production.
           </p>
+          <div className="overview-hero-trust">
+            <ShieldCheck size={14} /> Private by design · Everything stays local
+          </div>
         </div>
-        <button
-          className="text-button"
-          type="button"
-          onClick={() => onNavigate('Email Studio')}
-        >
-          Open Email Studio <ArrowRight size={14} />
-        </button>
+        <div className="overview-hero-summary">
+          <div className="overview-hero-summary-heading">
+            <span className="overview-hero-dot" />
+            WORKSPACE AT A GLANCE
+          </div>
+          <div className="overview-hero-metrics">
+            <div>
+              <strong>
+                {runningCount}
+                <span> / {studios.length}</span>
+              </strong>
+              <span>servers running</span>
+            </div>
+            <div>
+              <strong>{events.length}</strong>
+              <span>recent tool calls</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="overview-section-heading">
+        <div>
+          <span className="eyebrow">YOUR ENVIRONMENT</span>
+          <h2>Your studios</h2>
+          <p>Start a server here, or open a studio to manage its settings.</p>
+        </div>
+        <span className="overview-section-count">MCP MOCK SERVERS</span>
       </div>
 
-      <div className="overview-grid">
-        <section className="panel server-panel">
-          <div className="panel-heading">
-            <div className="panel-heading-icon email-icon">
-              <Mail size={17} />
-            </div>
-            <div className="panel-heading-copy">
-              <h3>Email</h3>
-              <span>Simulated mailbox</span>
-            </div>
-            {server ? (
-              <span
-                className={`tag-status ${server.running ? 'tag-running' : 'tag-stopped'}`}
-              >
-                <span className="status-dot" />{' '}
-                {server.running ? 'Running' : 'Stopped'}
-              </span>
-            ) : (
-              <span className="tag-status tag-available">Catalog</span>
-            )}
-          </div>
-          {server ? (
-            <>
-              <div className="mailbox-summary">
-                <div>
-                  <strong>{inboxCount}</strong>
-                  <span>Inbox</span>
-                </div>
-                <div>
-                  <strong>{sentCount}</strong>
-                  <span>Sent</span>
-                </div>
-                <div>
-                  <strong>{events.length}</strong>
-                  <span>Tool calls</span>
+      <div className="overview-studios">
+        {studios.map((studio) => {
+          const Icon = studio.icon
+          const running = studio.server?.running ?? false
+          return (
+            <article
+              className={`panel overview-studio overview-studio-${studio.type}`}
+              aria-label={`${studio.name} studio`}
+              key={studio.type}
+            >
+              <div className="overview-studio-top">
+                <span className="overview-studio-icon">
+                  <Icon size={20} />
+                </span>
+                <div className="overview-studio-status">
+                  <span className="eyebrow">SERVER STATUS</span>
+                  <span
+                    className={`tag-status ${running ? 'tag-running' : 'tag-stopped'}`}
+                    role="status"
+                    aria-label={`${studio.name} server: ${running ? 'Running' : 'Not running'}`}
+                  >
+                    <span className="status-dot" />
+                    {running ? 'Running' : 'Not running'}
+                  </span>
                 </div>
               </div>
-              <div className="server-panel-actions">
+              <h3>{studio.name} Studio</h3>
+              <p>{studio.description}</p>
+              <div className="overview-studio-detail">{studio.detail}</div>
+              <div className="overview-transport">
+                <Server size={12} /> Streamable HTTP
+              </div>
+              <p className="overview-studio-server-hint">
+                {studio.server
+                  ? 'Manage settings in the studio.'
+                  : 'First start creates starter data.'}
+              </p>
+              <div className="overview-studio-actions">
                 <button
-                  className="button button-primary"
+                  className="button button-secondary overview-studio-link"
                   type="button"
-                  onClick={onToggleServer}
+                  aria-label={`Open ${studio.name} Studio`}
+                  onClick={() => onNavigate(studio.page)}
+                >
+                  Open studio <ArrowRight size={14} />
+                </button>
+                <button
+                  className="button button-primary overview-studio-toggle"
+                  type="button"
+                  aria-label={`${running ? 'Stop' : 'Start'} ${studio.name} server`}
+                  onClick={() => onToggleServer(studio.type, studio.server)}
                   disabled={busy}
                 >
-                  {busy ? (
-                    <LoaderCircle className="spin" size={15} />
-                  ) : server.running ? (
-                    <Square size={13} />
-                  ) : (
-                    <Play size={15} />
-                  )}
-                  {server.running ? 'Stop server' : 'Start server'}
-                </button>
-                <button
-                  className="button button-secondary"
-                  type="button"
-                  onClick={() => onNavigate('Live Inspector')}
-                >
-                  <Activity size={15} /> Inspect
+                  {running ? <Square size={13} /> : <Play size={15} />}
+                  {running ? 'Stop server' : 'Start server'}
                 </button>
               </div>
-              {server.running && server.endpoint && (
-                <div className="endpoint-inline">
-                  <code>{server.endpoint}</code>
-                  <button
-                    className="icon-button"
-                    type="button"
-                    aria-label="Copy MCP endpoint"
-                    onClick={onCopyEndpoint}
-                  >
-                    <Copy size={14} />
-                  </button>
-                  <button
-                    className="icon-button"
-                    type="button"
-                    aria-label="Copy MCP config"
-                    onClick={onCopyConfig}
-                  >
-                    <FileText size={14} />
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="server-empty">
-              <p>
-                Add the Email mock to create a realistic inbox for your agent.
-              </p>
-              <button
-                className="button button-primary"
-                type="button"
-                onClick={onAddServer}
-                disabled={busy}
-              >
-                <Plus size={15} /> Add Email server
-              </button>
-            </div>
-          )}
-        </section>
-
-        <section className="panel activity-summary-panel">
-          <div className="panel-heading">
-            <div className="panel-heading-icon activity-icon">
-              <Activity size={17} />
-            </div>
-            <div className="panel-heading-copy">
-              <h3>Live activity</h3>
-              <span>Actual MCP tool executions</span>
-            </div>
-            <button
-              className="icon-button"
-              type="button"
-              aria-label="Open Live Inspector"
-              onClick={() => onNavigate('Live Inspector')}
-            >
-              <ArrowRight size={16} />
-            </button>
-          </div>
-          {latestEvent ? (
-            <div className="latest-event">
-              <div className="latest-event-top">
-                <span
-                  className={`result-indicator ${latestEvent.success ? 'result-success' : 'result-error'}`}
-                />
-                <strong>{latestEvent.toolName}</strong>
-                <span className="event-duration">
-                  {latestEvent.durationMs} ms
-                </span>
-              </div>
-              <div className="latest-event-meta">
-                <span>
-                  {new Date(latestEvent.createdAt).toLocaleTimeString()}
-                </span>
-                <span>
-                  {latestEvent.success
-                    ? 'Completed successfully'
-                    : latestEvent.error}
-                </span>
-              </div>
-              <pre className="mini-json">
-                {JSON.stringify(latestEvent.input, null, 2)}
-              </pre>
-            </div>
-          ) : (
-            <div className="activity-empty">
-              <span className="activity-empty-mark">
-                <Zap size={17} />
-              </span>
-              <strong>Waiting for your first tool call</strong>
-              <span>Connect an MCP client and try a real request.</span>
-            </div>
-          )}
-        </section>
-      </div>
-
-      <section className="panel mailbox-panel">
-        <div className="mailbox-header">
-          <div>
-            <h2 className="section-title">Mailbox preview</h2>
-            <p className="section-subtitle">
-              Changes made by your agent show up here.
-            </p>
-          </div>
-          {server && (
-            <div className="mailbox-header-actions">
-              <button
-                className="button button-secondary"
-                type="button"
-                onClick={() => onNavigate('Email Studio')}
-              >
-                <Wrench size={14} /> Customize mailbox
-              </button>
-              <button
-                className="button button-quiet"
-                type="button"
-                onClick={onReset}
-              >
-                <Trash2 size={14} /> Reset mock data
-              </button>
-            </div>
-          )}
-        </div>
-        {server ? (
-          <>
-            <div className="mailbox-tabs">
-              {['Inbox', 'Sent', 'Drafts'].map((name) => {
-                const count = emails.filter(
-                  (email) => email.folder === name
-                ).length
-                return (
-                  <button
-                    className={`mailbox-tab ${folder === name ? 'active' : ''}`}
-                    key={name}
-                    type="button"
-                    onClick={() => onFolderChange(name)}
-                  >
-                    {name === 'Inbox' ? (
-                      <Inbox size={14} />
-                    ) : name === 'Sent' ? (
-                      <ArrowRight size={14} />
-                    ) : (
-                      <FileText size={14} />
-                    )}
-                    {name}
-                    <span>{count}</span>
-                  </button>
-                )
-              })}
-            </div>
-            <EmailList
-              emails={emails.filter((email) => email.folder === folder)}
-            />
-          </>
-        ) : (
-          <div className="mailbox-disabled">
-            <FolderOpen size={17} />
-            <span>Add the Email mock server to preview mailbox data.</span>
-          </div>
-        )}
-      </section>
-    </>
-  )
-}
-
-function EmailList({ emails }: { emails: EmailMessage[] }) {
-  const [query, setQuery] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  if (emails.length === 0) {
-    return (
-      <div className="mailbox-empty-state">
-        <div className="mailbox-empty-icon">
-          <Mail size={18} />
-        </div>
-        <strong>This folder is quiet</strong>
-        <span>Messages created by your agent will appear here.</span>
-      </div>
-    )
-  }
-  const filtered = emails.filter((email) =>
-    [email.fromName, email.fromEmail, email.toEmail, email.subject, email.body]
-      .join(' ')
-      .toLowerCase()
-      .includes(query.trim().toLowerCase())
-  )
-  const selected =
-    filtered.find((email) => email.id === selectedId) ?? filtered[0]
-
-  return (
-    <div className="mailbox-browser">
-      <div className="mailbox-browser-toolbar">
-        <label className="mailbox-search">
-          <Search size={14} />
-          <input
-            type="search"
-            aria-label="Search this mailbox folder"
-            placeholder="Search sender, subject, or message"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          {query && (
-            <button
-              type="button"
-              aria-label="Clear mailbox search"
-              onClick={() => setQuery('')}
-            >
-              <X size={13} />
-            </button>
-          )}
-        </label>
-        <span className="mailbox-result-count">
-          {filtered.length} {filtered.length === 1 ? 'message' : 'messages'}
-        </span>
-      </div>
-      {filtered.length === 0 ? (
-        <div className="mailbox-empty-state mailbox-search-empty">
-          <Search size={17} />
-          <strong>No matching messages</strong>
-          <span>Try a different name, subject, or phrase.</span>
-        </div>
-      ) : (
-        <div className="mailbox-browser-grid">
-          <div className="email-list" aria-label="Messages">
-            {filtered.map((email) => (
-              <button
-                className={`email-row ${selected?.id === email.id ? 'selected' : ''}`}
-                key={email.id}
-                type="button"
-                aria-pressed={selected?.id === email.id}
-                onClick={() => setSelectedId(email.id)}
-              >
-                <div className="email-avatar">
-                  {(email.folder === 'Sent' ? 'A' : email.fromName)
-                    .slice(0, 1)
-                    .toUpperCase()}
-                </div>
-                <div className="email-row-content">
-                  <div className="email-row-top">
-                    <strong>
-                      {email.folder === 'Sent'
-                        ? `To ${email.toEmail}`
-                        : email.fromName}
-                    </strong>
-                    <span>
-                      {new Date(email.sentAt).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </span>
-                  </div>
-                  <div className="email-subject">{email.subject}</div>
-                  <div className="email-excerpt">{email.body}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-          {selected && (
-            <article className="email-preview">
-              <div className="email-preview-heading">
-                <span className="email-folder-badge">{selected.folder}</span>
-                <time dateTime={selected.sentAt}>
-                  {new Date(selected.sentAt).toLocaleString(undefined, {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit'
-                  })}
-                </time>
-              </div>
-              <h3>{selected.subject}</h3>
-              <div className="email-address-card">
-                <div className="email-avatar email-avatar-large">
-                  {selected.fromName.slice(0, 1).toUpperCase()}
-                </div>
-                <div>
-                  <strong>{selected.fromName}</strong>
-                  <span>{selected.fromEmail}</span>
-                  <small>To {selected.toEmail}</small>
-                </div>
-              </div>
-              <div className="email-preview-body">{selected.body}</div>
-              {selected.parentEmailId && (
-                <span className="email-thread-note">
-                  <ArrowRight size={12} /> Reply in an existing conversation
-                </span>
-              )}
             </article>
-          )}
-        </div>
-      )}
+          )
+        })}
+      </div>
     </div>
   )
 }
