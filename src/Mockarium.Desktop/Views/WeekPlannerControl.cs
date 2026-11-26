@@ -14,17 +14,11 @@ public sealed class WeekPlannerControl : Control
     public static readonly StyledProperty<IReadOnlyList<CalendarWeekBlock>?> BlocksProperty =
         AvaloniaProperty.Register<WeekPlannerControl, IReadOnlyList<CalendarWeekBlock>?>(nameof(Blocks));
 
-    private static readonly IBrush BackgroundBrush = Brush.Parse("#FFFFFF");
-    private static readonly IBrush WeekendBrush = Brush.Parse("#F8F9FC");
-    private static readonly IBrush EventBrush = Brush.Parse("#EDEBFF");
-    private static readonly IBrush AgentBrush = Brush.Parse("#DFF5EB");
-    private static readonly IBrush ConflictBrush = Brush.Parse("#FFF0D7");
-    private static readonly IBrush InkBrush = Brush.Parse("#283455");
-    private static readonly IBrush MutedBrush = Brush.Parse("#738097");
-    private static readonly IBrush AccentBrush = Brush.Parse("#7469DF");
-    private static readonly IBrush AgentAccentBrush = Brush.Parse("#319B73");
-    private static readonly IBrush ConflictAccentBrush = Brush.Parse("#D28B2E");
-    private static readonly Pen GridPen = new(Brush.Parse("#E8ECF3"), 1);
+    public WeekPlannerControl() => ActualThemeVariantChanged += (_, _) => InvalidateVisual();
+
+    private IBrush PaletteBrush(string key) =>
+        this.TryFindResource(key, ActualThemeVariant, out var value) && value is IBrush brush
+            ? brush : throw new InvalidOperationException($"Missing planner brush: {key}");
     private static readonly Typeface Regular = new("avares://Avalonia.Fonts.Inter/Assets#Inter");
     private static readonly Typeface Bold = new("avares://Avalonia.Fonts.Inter/Assets#Inter", weight: FontWeight.SemiBold);
     private readonly List<(CalendarWeekBlock Block, Rect Rect)> _targets = [];
@@ -48,15 +42,18 @@ public sealed class WeekPlannerControl : Control
     {
         base.Render(context);
         var width = Math.Max(1, (Bounds.Width - Gutter) / 7);
-        context.DrawRectangle(BackgroundBrush, null, new Rect(Bounds.Size));
-        context.DrawRectangle(WeekendBrush, null, new Rect(Gutter + 5 * width, 0, 2 * width, 24 * HourHeight));
+        var gridPen = new Pen(PaletteBrush("BorderBrush"), 1);
+        var ink = PaletteBrush("InkBrush");
+        var muted = PaletteBrush("MutedBrush");
+        context.DrawRectangle(PaletteBrush("SurfaceBrush"), null, new Rect(Bounds.Size));
+        context.DrawRectangle(PaletteBrush("SubtleBrush"), null, new Rect(Gutter + 5 * width, 0, 2 * width, 24 * HourHeight));
         for (var day = 0; day <= 7; day++)
-            context.DrawLine(GridPen, new Point(Gutter + day * width, 0), new Point(Gutter + day * width, 24 * HourHeight));
+            context.DrawLine(gridPen, new Point(Gutter + day * width, 0), new Point(Gutter + day * width, 24 * HourHeight));
         for (var hour = 0; hour <= 24; hour++)
         {
             var y = hour * HourHeight;
-            context.DrawLine(GridPen, new Point(Gutter, y), new Point(Bounds.Width, y));
-            if (hour < 24) DrawText(context, $"{hour:00}:00", new Point(5, y + 4), 10, MutedBrush, Regular, Gutter - 8);
+            context.DrawLine(gridPen, new Point(Gutter, y), new Point(Bounds.Width, y));
+            if (hour < 24) DrawText(context, $"{hour:00}:00", new Point(5, y + 4), 10, muted, Regular, Gutter - 8);
         }
 
         _targets.Clear();
@@ -73,17 +70,17 @@ public sealed class WeekPlannerControl : Control
                     ? new Rect(rect.X, rect.Y, rect.Width, Math.Max(22, rect.Height + _deltaMinutes / 60d * HourHeight))
                     : rect.Translate(new Vector(_deltaDays * width, _deltaMinutes / 60d * HourHeight));
             }
-            var fill = block.HasConflict ? ConflictBrush : block.IsAgentChange ? AgentBrush : EventBrush;
-            var accent = block.HasConflict ? ConflictAccentBrush : block.IsAgentChange ? AgentAccentBrush : AccentBrush;
+            var fill = PaletteBrush(block.HasConflict ? "WarmSoftBrush" : block.IsAgentChange ? "AccentSoftBrush" : "SecondarySoftBrush");
+            var accent = PaletteBrush(block.HasConflict ? "WarmBrush" : block.IsAgentChange ? "AccentBrush" : "SecondaryBrush");
             context.DrawRectangle(fill, null, rect, 6, 6);
             context.DrawRectangle(accent, null, new Rect(rect.X, rect.Y + 4, 3, Math.Max(1, rect.Height - 8)), 2, 2);
             using (context.PushClip(rect))
             {
-                DrawText(context, block.Event.Title, new Point(rect.X + 8, rect.Y + 4), 11, InkBrush, Bold, rect.Width - 12);
+                DrawText(context, block.Event.Title, new Point(rect.X + 8, rect.Y + 4), 11, ink, Bold, rect.Width - 12);
                 if (rect.Height >= 42)
-                    DrawText(context, block.TimeLabel, new Point(rect.X + 8, rect.Y + 20), 10, MutedBrush, Regular, rect.Width - 12);
+                    DrawText(context, block.TimeLabel, new Point(rect.X + 8, rect.Y + 20), 10, muted, Regular, rect.Width - 12);
                 if (rect.Height >= 58 && block.HasConflict)
-                    DrawText(context, "Conflict", new Point(rect.X + 8, rect.Y + 34), 10, ConflictAccentBrush, Bold, rect.Width - 12);
+                    DrawText(context, "Conflict", new Point(rect.X + 8, rect.Y + 34), 10, accent, Bold, rect.Width - 12);
             }
         }
     }

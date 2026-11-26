@@ -5,7 +5,7 @@
         WindowStartupLocation="CenterScreen" Style="{StaticResource {x:Type Window}}">
     <Grid>
         <Grid.ColumnDefinitions><ColumnDefinition Width="240"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" Padding="18,24,18,18">
+        <Border Grid.Column="0" Background="{DynamicResource SidebarBrush}" Padding="18,24,18,18">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
@@ -23,13 +23,17 @@
                     <TextBlock Text="WORKSPACE" Foreground="#9DABBE" FontSize="10" FontWeight="Bold" Margin="4,0,0,8"/>
                     <ComboBox ItemsSource="{Binding Workspaces}" SelectedItem="{Binding SelectedWorkspace}" DisplayMemberPath="Name"
                               ToolTip="Select a workspace" AutomationProperties.Name="Active workspace"/>
-                    <TextBox MaxLength="80" Text="{Binding WorkspaceName, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0"
+                    <Expander Header="Manage workspace" AutomationProperties.Name="Manage workspace" HorizontalContentAlignment="Stretch" Foreground="#D6E8E1" Margin="0,6,0,0">
+                    <StackPanel>
+                    <TextBox MaxLength="80" Text="{Binding WorkspaceName, UpdateSourceTrigger=PropertyChanged}"
                              ToolTip="Enter a workspace name" AutomationProperties.Name="Workspace name"/>
                     <UniformGrid Columns="3" Margin="0,6,0,0">
                         <Button Content="New" AutomationProperties.Name="New workspace" Command="{Binding CreateWorkspaceCommand}" Padding="4,6" Margin="0,0,3,0"/>
                         <Button Content="Rename" AutomationProperties.Name="Rename workspace" Command="{Binding RenameWorkspaceCommand}" Padding="4,6" Margin="2,0"/>
                         <Button Content="Delete" AutomationProperties.Name="Delete workspace" Command="{Binding DeleteWorkspaceCommand}" Padding="4,6" Margin="3,0,0,0"/>
                     </UniformGrid>
+                    </StackPanel>
+                    </Expander>
                     <Border Height="1" Background="#2A3548" Margin="0,20,0,14"/>
                 </StackPanel>
                 <StackPanel Grid.Row="2">
@@ -40,7 +44,7 @@
                     <Button Style="{StaticResource NavButton}" Tag="{Binding IsCalendar}" IsEnabled="{Binding HasWorkspace}" Content="◷    Calendar Studio" Command="{Binding NavigateCommand}" CommandParameter="calendar"/>
                     <Button Style="{StaticResource NavButton}" Tag="{Binding IsInspector}" IsEnabled="{Binding HasWorkspace}" Content="⌁    Live Inspector" Command="{Binding NavigateCommand}" CommandParameter="inspector"/>
                 </StackPanel>
-                <Border Grid.Row="3" Background="#1B283B" CornerRadius="9" Padding="12">
+                <Border Grid.Row="3" Background="#213A3B" CornerRadius="12" Padding="12">
                     <StackPanel>
                         <TextBlock Text="●  LOCAL MODE" Foreground="#80D8AF" FontWeight="Bold" FontSize="10"/>
                         <TextBlock Text="Your mock data stays on this device." Foreground="#B4C0D0" FontSize="11" Margin="0,5,0,0"/>
@@ -51,29 +55,34 @@
         </Border>
         <Grid Grid.Column="1">
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-            <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="30,17">
+            <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="30,10">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Right" Text="●  LOCAL-FIRST" Foreground="#2E8462" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Mockarium" Foreground="{StaticResource MutedBrush}"/>
-                        <TextBlock Text="  /  " Foreground="#B3BCC9"/>
+                    <Border DockPanel.Dock="Right" Background="{DynamicResource SubtleBrush}" CornerRadius="18" Padding="3">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Style="{StaticResource ModeOption}" GroupName="Appearance" Content="Day" AutomationProperties.Name="Day mode" IsChecked="{Binding IsDayMode, Mode=TwoWay}"/>
+                            <RadioButton Style="{StaticResource ModeOption}" GroupName="Appearance" Content="Night" AutomationProperties.Name="Night mode" IsChecked="{Binding IsNightMode, Mode=TwoWay}"/>
+                        </StackPanel>
+                    </Border>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="WORKBENCH" Foreground="{DynamicResource MutedBrush}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="   /   " Foreground="{DynamicResource MutedBrush}"/>
                         <TextBlock Text="{Binding CurrentPageTitle}" FontWeight="SemiBold"/>
                     </StackPanel>
                 </DockPanel>
             </Border>
             <StackPanel Grid.Row="1" Margin="30,10,30,0">
-                <Border Background="#FFF0F0" BorderBrush="#F0CACA" BorderThickness="1" CornerRadius="8" Padding="12"
+                <Border Background="{DynamicResource DangerSoftBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12"
                         Visibility="{Binding HasError, Converter={StaticResource BoolVisibility}}">
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissErrorCommand}" Padding="8,4"/>
-                        <TextBlock Text="{Binding Error}" Foreground="#8E2938" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Error}" Foreground="{DynamicResource DangerBrush}" VerticalAlignment="Center"/>
                     </DockPanel>
                 </Border>
-                <Border Background="#EAF8F1" BorderBrush="#BFE7D2" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,4,0,0"
+                <Border Background="{DynamicResource PositiveSoftBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,4,0,0"
                         Visibility="{Binding HasNotice, Converter={StaticResource BoolVisibility}}">
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissNoticeCommand}" Padding="8,4"/>
-                        <TextBlock Text="{Binding Notice}" Foreground="#216449" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Notice}" Foreground="{DynamicResource PositiveBrush}" VerticalAlignment="Center"/>
                     </DockPanel>
                 </Border>
             </StackPanel>

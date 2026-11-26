@@ -2,29 +2,34 @@ namespace Mockarium.Core.Storage;
 
 public sealed partial class MockariumStore
 {
-    public bool GetReduceMotion()
+    public bool GetNightMode() => GetFlag("nightMode");
+    public void SetNightMode(bool value) => SetFlag("nightMode", value);
+    public bool GetReduceMotion() => GetFlag("reduceMotion");
+    public void SetReduceMotion(bool value) => SetFlag("reduceMotion", value);
+
+    private bool GetFlag(string key)
     {
         lock (_gate)
         {
-            return Scalar<string>("SELECT value FROM app_settings WHERE key = 'reduceMotion'") switch
+            return Scalar<string>("SELECT value FROM app_settings WHERE key = $key", ("$key", key)) switch
             {
                 null or "false" => false,
                 "true" => true,
-                _ => throw new InvalidDataException("The saved motion preference is invalid.")
+                _ => throw new InvalidDataException($"The saved '{key}' preference is invalid.")
             };
         }
     }
 
-    public void SetReduceMotion(bool value)
+    private void SetFlag(string key, bool value)
     {
         lock (_gate)
         {
             Execute(
                 """
-                INSERT INTO app_settings (key, value) VALUES ('reduceMotion', $value)
+                INSERT INTO app_settings (key, value) VALUES ($key, $value)
                 ON CONFLICT(key) DO UPDATE SET value = excluded.value
                 """,
-                ("$value", value ? "true" : "false"));
+                ("$key", key), ("$value", value ? "true" : "false"));
         }
     }
 

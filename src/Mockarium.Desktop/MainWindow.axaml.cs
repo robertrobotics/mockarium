@@ -1,4 +1,7 @@
 using Avalonia.Controls;
+using Avalonia;
+using Avalonia.Styling;
+using System.ComponentModel;
 using Mockarium.ViewModels;
 
 namespace Mockarium.Desktop;
@@ -14,7 +17,21 @@ public partial class MainWindow : Window
     public void Initialize(DesktopViewModel viewModel)
     {
         _viewModel = viewModel;
+        Application.Current!.RequestedThemeVariant = viewModel.IsNightMode ? ThemeVariant.Dark : ThemeVariant.Light;
+        viewModel.PropertyChanged += OnPreferenceChanged;
         DataContext = viewModel;
+    }
+
+    private void OnPreferenceChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DesktopViewModel.IsNightMode))
+            Application.Current!.RequestedThemeVariant = _viewModel!.IsNightMode ? ThemeVariant.Dark : ThemeVariant.Light;
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        if (_viewModel is not null) _viewModel.PropertyChanged -= OnPreferenceChanged;
+        base.OnClosed(e);
     }
 
     protected override async void OnClosing(WindowClosingEventArgs e)

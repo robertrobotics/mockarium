@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Mockarium (macOS / Linux)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build Mockarium Desktop",
+      "program": "${workspaceFolder}/src/Mockarium.Desktop/bin/Debug/net11.0/Mockarium.Desktop.dll",
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole"
+    },
+    {
+      "name": "Mockarium (Windows)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build Mockarium WPF",
+      "program": "${workspaceFolder}/src/Mockarium.Wpf/bin/Debug/net11.0-windows/Mockarium.Wpf.dll",
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole"
+    }
+  ]
+}

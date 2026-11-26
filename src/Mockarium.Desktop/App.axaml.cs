@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
+using Avalonia.Styling;
 using Microsoft.Extensions.Logging;
 using Mockarium.Core.Mcp;
 using Mockarium.Core.Storage;
@@ -13,7 +15,19 @@ public partial class App : Application
 {
     private ILoggerFactory? _loggerFactory;
 
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+        var day = new ResourceDictionary();
+        var night = new ResourceDictionary();
+        foreach (var (key, light, dark) in StudioPalette.Brushes)
+        {
+            day.Add(key, new SolidColorBrush(Color.Parse(light)));
+            night.Add(key, new SolidColorBrush(Color.Parse(dark)));
+        }
+        Resources.ThemeDictionaries.Add(ThemeVariant.Light, day);
+        Resources.ThemeDictionaries.Add(ThemeVariant.Dark, night);
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {

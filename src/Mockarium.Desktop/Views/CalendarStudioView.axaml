@@ -24,17 +24,17 @@
                             </StackPanel>
                         </DockPanel>
                         <TextBlock Text="Drag to move · Drag an event's lower edge to resize · Select an empty time to create"
-                                   Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="20,0,20,12"/>
-                        <Grid ColumnDefinitions="52,*" Background="#F8F9FD" MinWidth="720">
-                            <TextBlock Text="{Binding WeekTimeZone}" FontSize="9" Foreground="{StaticResource MutedBrush}"
+                                   Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="20,0,20,12"/>
+                        <Grid ColumnDefinitions="52,*" Background="{DynamicResource SubtleBrush}" MinWidth="720">
+                            <TextBlock Text="{Binding WeekTimeZone}" FontSize="9" Foreground="{DynamicResource MutedBrush}"
                                        VerticalAlignment="Center" Margin="5"/>
                             <ItemsControl Grid.Column="1" ItemsSource="{Binding WeekDays}">
                                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:CalendarWeekDay">
                                         <StackPanel HorizontalAlignment="Center" Margin="0,8">
-                                            <TextBlock Text="{Binding Weekday}" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="{Binding DayNumber}" Foreground="{StaticResource InkBrush}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Weekday}" Foreground="{DynamicResource MutedBrush}" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding DayNumber}" Foreground="{DynamicResource InkBrush}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -45,7 +45,7 @@
                                                       AutomationProperties.Name="Weekly calendar. Use Agenda to edit events with the keyboard."/>
                         </ScrollViewer>
                         <TextBlock Text="Purple: scheduled   ·   Green: agent change   ·   Amber: scheduling conflict"
-                                   Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="18,12"/>
+                                   Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="18,12"/>
                     </StackPanel>
                 </Border>
             </TabItem>
@@ -61,8 +61,8 @@
                                 <DataTemplate x:DataType="core:CalendarEvent">
                                     <StackPanel>
                                         <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding StartAt}" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,3,0,0"/>
-                                        <TextBlock Text="{Binding Status}" Foreground="#4D826A" FontSize="10"/>
+                                        <TextBlock Text="{Binding StartAt}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+                                        <TextBlock Text="{Binding Status}" Foreground="{DynamicResource PositiveBrush}" FontSize="10"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -72,7 +72,7 @@
                     <StackPanel Grid.Column="1">
                         <TextBlock Text="Event details" Classes="section-title"/>
                         <TextBlock Text="Date-times use ISO 8601 with an offset, for example 2025-03-10T13:00:00Z."
-                                   Foreground="{StaticResource MutedBrush}" Margin="0,5,0,4"/>
+                                   Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,4"/>
                         <TextBlock Text="Title" Classes="field-label"/>
                         <TextBox Text="{Binding EventTitle, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Event title"/>
                         <Grid ColumnDefinitions="*,*">
@@ -106,7 +106,7 @@
                 <Border Classes="card" Margin="12" MaxWidth="600" HorizontalAlignment="Left">
                     <StackPanel>
                         <TextBlock Text="Owner and simulated clock" Classes="section-title"/>
-                        <TextBlock Text="Agents use this clock and these working hours when finding availability." Foreground="{StaticResource MutedBrush}" Margin="0,5,0,8"/>
+                        <TextBlock Text="Agents use this clock and these working hours when finding availability." Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,8"/>
                         <TextBlock Text="Owner name" Classes="field-label"/>
                         <TextBox Text="{Binding OwnerName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Owner name"/>
                         <TextBlock Text="Owner email" Classes="field-label"/>

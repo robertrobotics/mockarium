@@ -73,6 +73,27 @@ public sealed class StorageTests : IDisposable
     }
 
     [Fact]
+    public void AppearanceSurvivesRestartIndependentlyOfMotionAndWorkspace()
+    {
+        using (var store = new MockariumStore(DatabasePath))
+        {
+            Assert.False(store.GetNightMode());
+            store.SetNightMode(true);
+            store.CreateWorkspace("Studio");
+        }
+        using (var reopened = new MockariumStore(DatabasePath))
+        {
+            Assert.True(reopened.GetNightMode());
+            Assert.False(reopened.GetReduceMotion());
+            reopened.SetReduceMotion(true);
+            reopened.SetNightMode(false);
+        }
+        using var day = new MockariumStore(DatabasePath);
+        Assert.False(day.GetNightMode());
+        Assert.True(day.GetReduceMotion());
+    }
+
+    [Fact]
     public void StudiosPersistAndRemainWorkspaceIsolated()
     {
         string firstId;

@@ -15,7 +15,21 @@ public partial class MainWindow : Window
     public void Initialize(DesktopViewModel viewModel)
     {
         _viewModel = viewModel;
+        ((App)Application.Current).ApplyAppearance(viewModel.IsNightMode);
+        viewModel.PropertyChanged += OnPreferenceChanged;
         DataContext = viewModel;
+    }
+
+    private void OnPreferenceChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DesktopViewModel.IsNightMode))
+            ((App)Application.Current).ApplyAppearance(_viewModel!.IsNightMode);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        if (_viewModel is not null) _viewModel.PropertyChanged -= OnPreferenceChanged;
+        base.OnClosed(e);
     }
 
     protected override async void OnClosing(CancelEventArgs e)

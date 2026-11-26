@@ -4,15 +4,6 @@
              xmlns:vm="using:Mockarium.ViewModels"
              xmlns:views="using:Mockarium.Desktop.Views"
              RequestedThemeVariant="Light">
-    <Application.Resources>
-        <SolidColorBrush x:Key="CanvasBrush" Color="#F5F6FA"/>
-        <SolidColorBrush x:Key="InkBrush" Color="#172230"/>
-        <SolidColorBrush x:Key="MutedBrush" Color="#667486"/>
-        <SolidColorBrush x:Key="BorderBrush" Color="#DFE4ED"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#6258D3"/>
-        <SolidColorBrush x:Key="AccentSoftBrush" Color="#F0EEFF"/>
-        <SolidColorBrush x:Key="SidebarBrush" Color="#111A29"/>
-    </Application.Resources>
     <Application.DataTemplates>
         <DataTemplate DataType="{x:Type vm:OverviewViewModel}"><ScrollViewer><views:OverviewView Classes="page"/></ScrollViewer></DataTemplate>
         <DataTemplate DataType="{x:Type vm:EmailStudioViewModel}"><ScrollViewer><views:EmailStudioView Classes="page"/></ScrollViewer></DataTemplate>
@@ -21,7 +12,31 @@
         <DataTemplate DataType="{x:Type vm:InspectorViewModel}"><ScrollViewer><views:InspectorView Classes="page"/></ScrollViewer></DataTemplate>
     </Application.DataTemplates>
     <Application.Styles>
-        <FluentTheme/>
+        <FluentTheme>
+            <FluentTheme.Palettes>
+                <ColorPaletteResources x:Key="Light" Accent="#006A5B"/>
+                <ColorPaletteResources x:Key="Dark" Accent="#78E2C4"/>
+            </FluentTheme.Palettes>
+        </FluentTheme>
+        <Style Selector="RadioButton.mode">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border CornerRadius="14" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="2" Padding="13,3">
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+            <Setter Property="MinHeight" Value="28"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+        <Style Selector="RadioButton.mode:checked">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style Selector="RadioButton.mode:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource InkBrush}"/></Style>
         <Style Selector=":is(UserControl).page">
             <Setter Property="Margin" Value="30,24,30,32"/>
         </Style>
@@ -36,16 +51,16 @@
         <Style Selector=":is(Window)">
             <Setter Property="FontFamily" Value="avares://Avalonia.Fonts.Inter/Assets#Inter"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
-            <Setter Property="Background" Value="{StaticResource CanvasBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource CanvasBrush}"/>
         </Style>
         <Style Selector="TextBlock">
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
         <Style Selector="Button">
-            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="13,8"/>
             <Setter Property="CornerRadius" Value="7"/>
@@ -59,9 +74,9 @@
         <Style Selector="Button:pressed"><Setter Property="Opacity" Value="0.72"/></Style>
         <Style Selector=":is(Window).reduced-motion Button"><Setter Property="Transitions" Value="{x:Null}"/></Style>
         <Style Selector="Button.primary">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
         </Style>
         <Style Selector="Button.nav">
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
@@ -72,7 +87,7 @@
             <Setter Property="Padding" Value="14,11"/>
             <Setter Property="Margin" Value="0,2"/>
         </Style>
-        <Style Selector="Button.nav:pointerover"><Setter Property="Background" Value="#28364F"/></Style>
+        <Style Selector="Button.nav:pointerover"><Setter Property="Background" Value="#244644"/></Style>
         <Style Selector="Button.nav:disabled /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#9BA6BB"/>
@@ -80,24 +95,26 @@
         </Style>
         <Style Selector="Button.nav.active">
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="#343B60"/>
-            <Setter Property="BorderBrush" Value="#54577E"/>
+            <Setter Property="Background" Value="#235749"/>
+            <Setter Property="BorderBrush" Value="#457C69"/>
         </Style>
-        <Style Selector="Button.danger"><Setter Property="Foreground" Value="#A43242"/></Style>
+        <Style Selector="Button.danger"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></Style>
         <Style Selector="TextBox">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="Padding" Value="9,7"/>
             <Setter Property="MinHeight" Value="34"/>
         </Style>
         <Style Selector="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
             <Setter Property="MinHeight" Value="34"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
         </Style>
         <Style Selector="ListBox">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="3"/>
         </Style>
@@ -106,12 +123,13 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         </Style>
         <Style Selector="TabItem">
+            <Setter Property="FontSize" Value="15"/>
             <Setter Property="Padding" Value="16,9"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
         <Style Selector="Border.card">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Padding" Value="20"/>
@@ -122,27 +140,27 @@
                 <Transitions><BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.18"/></Transitions>
             </Setter>
         </Style>
-        <Style Selector="Border.studio-icon"><Setter Property="Background" Value="#EEECFF"/></Style>
-        <Style Selector="Border.studio-icon TextBlock"><Setter Property="Foreground" Value="#584DBD"/></Style>
-        <Style Selector="Border.studio-icon[Tag=database]"><Setter Property="Background" Value="#DFF4EF"/></Style>
-        <Style Selector="Border.studio-icon[Tag=database] TextBlock"><Setter Property="Foreground" Value="#22695F"/></Style>
-        <Style Selector="Border.studio-icon[Tag=calendar]"><Setter Property="Background" Value="#FCEAD9"/></Style>
-        <Style Selector="Border.studio-icon[Tag=calendar] TextBlock"><Setter Property="Foreground" Value="#914820"/></Style>
-        <Style Selector="Border.status-badge"><Setter Property="Background" Value="#EEF0F5"/></Style>
-        <Style Selector="Border.status-badge TextBlock"><Setter Property="Foreground" Value="#49566C"/></Style>
-        <Style Selector="Border.status-badge.live"><Setter Property="Background" Value="#E1F5EA"/></Style>
-        <Style Selector="Border.status-badge.live TextBlock"><Setter Property="Foreground" Value="#276447"/></Style>
+        <Style Selector="Border.studio-icon"><Setter Property="Background" Value="{DynamicResource SecondarySoftBrush}"/></Style>
+        <Style Selector="Border.studio-icon TextBlock"><Setter Property="Foreground" Value="{DynamicResource SecondaryBrush}"/></Style>
+        <Style Selector="Border.studio-icon[Tag=database]"><Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/></Style>
+        <Style Selector="Border.studio-icon[Tag=database] TextBlock"><Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/></Style>
+        <Style Selector="Border.studio-icon[Tag=calendar]"><Setter Property="Background" Value="{DynamicResource WarmSoftBrush}"/></Style>
+        <Style Selector="Border.studio-icon[Tag=calendar] TextBlock"><Setter Property="Foreground" Value="{DynamicResource WarmBrush}"/></Style>
+        <Style Selector="Border.status-badge"><Setter Property="Background" Value="{DynamicResource SubtleBrush}"/></Style>
+        <Style Selector="Border.status-badge TextBlock"><Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/></Style>
+        <Style Selector="Border.status-badge.live"><Setter Property="Background" Value="{DynamicResource PositiveSoftBrush}"/></Style>
+        <Style Selector="Border.status-badge.live TextBlock"><Setter Property="Foreground" Value="{DynamicResource PositiveBrush}"/></Style>
         <Style Selector="Border.studio-card:pointerover"><Setter Property="BoxShadow" Value="0 8 24 0 #1C25366B"/></Style>
         <Style Selector=":is(Window).reduced-motion Border.studio-card"><Setter Property="Transitions" Value="{x:Null}"/></Style>
         <Style Selector="TextBlock.field-label">
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#48576A"/>
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
             <Setter Property="Margin" Value="0,10,0,5"/>
         </Style>
         <Style Selector="TextBlock.section-title">
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontSize" Value="17"/>
-            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
         </Style>
     </Application.Styles>
 </Application>

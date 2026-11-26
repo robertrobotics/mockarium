@@ -11,7 +11,7 @@
             </StackPanel>
             <StackPanel>
                 <TextBlock Text="Live Inspector" FontSize="27" FontWeight="Bold"/>
-                <TextBlock Text="Actual tool calls, inputs, and results from your connected agents." Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
+                <TextBlock Text="Actual tool calls, inputs, and results from your connected agents." Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,0"/>
             </StackPanel>
         </DockPanel>
         <Grid Margin="0,22,0,12">
@@ -26,11 +26,11 @@
                     <DataTemplate>
                         <StackPanel>
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding Status}" Foreground="#397A5D" FontSize="10" FontWeight="Bold"/>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Status}" Foreground="{DynamicResource PositiveBrush}" FontSize="10" FontWeight="Bold"/>
                                 <TextBlock Text="{Binding ToolName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                             </DockPanel>
-                            <TextBlock Text="{Binding ServerName}" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,4,0,0"/>
-                            <TextBlock Text="{Binding CreatedAt}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                            <TextBlock Text="{Binding ServerName}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding CreatedAt}" Foreground="{DynamicResource MutedBrush}" FontSize="10"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -38,7 +38,7 @@
             <Border Grid.Column="1" Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
                     <TextBlock Text="Execution details" Style="{StaticResource SectionTitle}"/>
-                    <TextBlock Text="Select a call to inspect the actual input and output." Foreground="{StaticResource MutedBrush}" Margin="0,5,0,4"/>
+                    <TextBlock Text="Select a call to inspect the actual input and output." Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,4"/>
                     <TextBlock Text="INPUT" Style="{StaticResource FieldLabel}"/>
                     <TextBox Text="{Binding InputJson}" AutomationProperties.Name="Tool call input" FontFamily="Consolas" FontSize="12" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140"/>
                     <TextBlock Text="OUTPUT" Style="{StaticResource FieldLabel}"/>

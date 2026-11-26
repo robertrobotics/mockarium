@@ -23,7 +23,7 @@
                                 <DataTemplate>
                                     <StackPanel>
                                         <TextBlock Text="{Binding Summary}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding Id}" FontSize="10" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                        <TextBlock Text="{Binding Id}" FontSize="10" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -31,13 +31,13 @@
                     </StackPanel>
                     <StackPanel Grid.Column="2">
                         <TextBlock Text="Record details" Style="{StaticResource SectionTitle}"/>
-                        <TextBlock Text="Relationship values are record IDs from the target table." Foreground="{StaticResource MutedBrush}" Margin="0,5,0,8"/>
+                        <TextBlock Text="Relationship values are record IDs from the target table." Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,8"/>
                         <ItemsControl ItemsSource="{Binding RecordFields}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel>
                                         <DockPanel>
-                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Hint}" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,10,0,0"/>
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Hint}" Foreground="{DynamicResource MutedBrush}" FontSize="10" Margin="0,10,0,0"/>
                                             <TextBlock Text="{Binding Label}" Style="{StaticResource FieldLabel}"/>
                                         </DockPanel>
                                         <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding Label}"/>
@@ -88,7 +88,7 @@
                         <CheckBox Content="Required" IsChecked="{Binding SelectedField.Required}" Margin="0,12,0,0"/>
                         <Button Content="Save model changes" Command="{Binding SaveModelCommand}" Style="{StaticResource PrimaryButton}"
                                 HorizontalAlignment="Left" Margin="0,18,0,0"/>
-                        <TextBlock Text="Save model changes before starting or stopping the server." Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                        <TextBlock Text="Save model changes before starting or stopping the server." Foreground="{DynamicResource MutedBrush}" Margin="0,8,0,0"/>
                     </StackPanel>
                 </Grid>
             </TabItem>

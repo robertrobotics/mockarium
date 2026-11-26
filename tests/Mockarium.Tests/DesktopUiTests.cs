@@ -5,6 +5,8 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Input.Raw;
 using Avalonia.Media.Imaging;
+using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -116,6 +118,15 @@ public sealed class DesktopUiTests
         Assert.False(createWorkspace.IsEffectivelyVisible);
         shell.DismissNoticeCommand.Execute(null);
         SaveFrame(window, "overview");
+        var night = window.FindControl<RadioButton>("NightModeButton")!;
+        var day = window.FindControl<RadioButton>("DayModeButton")!;
+        var dayBackground = ((ISolidColorBrush)window.Background!).Color;
+        Click(window, night);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(ThemeVariant.Dark, window.ActualThemeVariant);
+        Assert.NotEqual(dayBackground, ((ISolidColorBrush)window.Background!).Color);
+        Assert.True(night.IsChecked);
+        SaveFrame(window, "overview-night");
 
         Click(window, window.FindControl<Button>("EmailNavigationButton")!);
         Dispatcher.UIThread.RunJobs();
@@ -135,7 +146,20 @@ public sealed class DesktopUiTests
         Assert.Equal("Message folder", ControlAutomationPeer.CreatePeerForElement(folderSelector)!.GetName());
         var subjectInput = emailView.FindControl<TextBox>("MessageSubjectInput")!;
         Assert.Equal("Message subject", ControlAutomationPeer.CreatePeerForElement(subjectInput)!.GetName());
+        Assert.Equal(1, shell.Overview.RunningCount);
+        var nightEditor = ((ISolidColorBrush)subjectInput.Background!).Color;
+        shell.Email.Subject = "Local draft";
+        var endpoint = shell.Email.Endpoint;
+        Click(window, day);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(ThemeVariant.Light, window.ActualThemeVariant);
+        Assert.NotEqual(nightEditor, ((ISolidColorBrush)subjectInput.Background!).Color);
+        Assert.Equal("Local draft", subjectInput.Text);
+        Assert.Equal(endpoint, shell.Email.Endpoint);
         SaveFrame(window, "email");
+        Click(window, night);
+        Dispatcher.UIThread.RunJobs();
+        SaveFrame(window, "email-night");
 
         var motion = window.GetVisualDescendants().OfType<CheckBox>()
             .Single(box => Equals(box.Content, "Reduce motion"));

@@ -45,6 +45,16 @@ public sealed partial class DesktopViewModel : ObservableObject, IAsyncDisposabl
     private bool reduceMotion;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDayMode))]
+    private bool isNightMode;
+
+    public bool IsDayMode
+    {
+        get => !IsNightMode;
+        set { if (value) IsNightMode = false; }
+    }
+
+    [ObservableProperty]
     private string currentPageTitle = "Overview";
 
     public DesktopViewModel(MockariumStore store, McpRuntime runtime, IPlatformServices platform, ILoggerFactory loggerFactory)
@@ -59,6 +69,7 @@ public sealed partial class DesktopViewModel : ObservableObject, IAsyncDisposabl
         Inspector = new InspectorViewModel(this, store, platform);
         Overview = new OverviewViewModel(this, [Email, Database, Calendar]);
         reduceMotion = _store.GetReduceMotion();
+        isNightMode = _store.GetNightMode();
         currentPage = Overview;
         _runtime.ExecutionCaptured += OnExecutionCaptured;
         RefreshWorkspaces(_store.GetActiveWorkspaceId());
@@ -81,6 +92,12 @@ public sealed partial class DesktopViewModel : ObservableObject, IAsyncDisposabl
     public bool IsInspector => CurrentPage == Inspector;
 
     partial void OnReduceMotionChanged(bool value) => Run(() => _store.SetReduceMotion(value));
+
+    partial void OnIsNightModeChanged(bool value)
+    {
+        try { _store.SetNightMode(value); }
+        catch (Exception exception) { Report(exception); }
+    }
 
     partial void OnSelectedWorkspaceChanged(Workspace? oldValue, Workspace? newValue)
     {
@@ -296,8 +313,21 @@ public sealed partial class DesktopViewModel : ObservableObject, IAsyncDisposabl
     }
 }
 
-public sealed class OverviewViewModel(DesktopViewModel shell, IReadOnlyList<StudioViewModel> studios)
+public sealed class OverviewViewModel : ObservableObject
 {
-    public DesktopViewModel Shell { get; } = shell;
-    public IReadOnlyList<StudioViewModel> Studios { get; } = studios;
+    public DesktopViewModel Shell { get; }
+    public IReadOnlyList<StudioViewModel> Studios { get; }
+    public int RunningCount => Studios.Count(studio => studio.IsRunning);
+
+    public OverviewViewModel(DesktopViewModel shell, IReadOnlyList<StudioViewModel> studios)
+    {
+        Shell = shell;
+        Studios = studios;
+        foreach (var studio in Studios)
+            studio.PropertyChanged += (_, change) =>
+            {
+                if (change.PropertyName == nameof(StudioViewModel.IsRunning))
+                    OnPropertyChanged(nameof(RunningCount));
+            };
+    }
 }

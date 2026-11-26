@@ -62,6 +62,11 @@ could be lost.
 
 Both clients use the same studio view models and provide a visual week planner;
 keyboard-accessible agenda controls remain available for calendar editing.
+`StudioPalette` defines the shared day/night color pairs. Views use dynamic
+brush resources; the custom-drawn week planner also resolves those colors
+when rendering. The clients switch their native Fluent theme in place rather
+than re-creating the workspace. The appearance preference and reduced-motion
+preference are stored independently in SQLite.
 Editor fields, lists, and ambiguous actions expose accessible names in both
 clients. Screen-reader and platform-specific accessibility validation remain
 part of the release review.

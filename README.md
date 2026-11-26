@@ -4,7 +4,10 @@
 
 Mockarium is a local-first desktop application for testing AI agents against simulated MCP services. It provides realistic Email, Database, and Calendar workspaces and shows the real tool calls agents make; it is not an AI agent builder.
 
-![Mockarium workspace overview showing the Email, Database, and Calendar studios.](docs/media/overview.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/media/overview-night.png">
+  <img src="docs/media/overview.png" alt="Mockarium workbench with a live server count, studio collection, and Day and Night controls.">
+</picture>
 
 ## Desktop applications
 
@@ -17,8 +20,14 @@ Both clients use the same MVVM layer, domain services, SQLite store, and MCP run
 
 ## Run from source
 
-Install the .NET 11 SDK. Open [Mockarium.slnx](Mockarium.slnx) in your IDE,
-or run the following commands from the repository root.
+Install the .NET 11 SDK. In VS Code, open the repository **folder** and install
+Microsoft's **C# Dev Kit** extension. In **Run and Debug**, choose **Mockarium
+(macOS / Linux)** or **Mockarium (Windows)**, then press **F5**. The
+[launch profiles](.vscode/launch.json) build and start the selected client
+directly without requiring a startup-project selection.
+
+Alternatively, open [Mockarium.slnx](Mockarium.slnx) in your IDE or use the
+terminal commands below.
 
 On macOS and Linux, run the Avalonia client:
 
@@ -38,8 +47,14 @@ Enter a name on the overview and press **Enter** to create your workspace.
 Open a studio to edit its starter data, or choose **Start server** to create
 the starter data and start listening in one step. Copy the configuration to
 your MCP client, then use **Live Inspector** to see its requests and results.
-Nothing connects to a real service. A **Reduce motion** preference is
-available in the sidebar.
+Nothing connects to a real service. The overview shows how many studio
+servers are running in the selected workspace.
+
+Choose **Day** or **Night** in the top bar at any time. The choice is saved
+on this device across workspaces and restarts. Switching does not interrupt
+a running server or discard an editor draft. **Reduce motion** is a separate
+preference in the sidebar. [Preview day mode](docs/media/overview.png) ·
+[Preview night mode](docs/media/overview-night.png).
 
 ## Release builds
 
