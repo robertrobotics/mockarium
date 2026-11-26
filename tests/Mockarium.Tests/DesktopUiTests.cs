@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Input.Raw;
@@ -30,6 +31,60 @@ public static class HeadlessAppBuilder
 public sealed class DesktopUiTests
 {
     [Fact]
+    public async Task SearchableWorkspacePickerKeepsTheCurrentDraftUntilSwitchIsConfirmed()
+    {
+        using var session = HeadlessUnitTestSession.StartNew(typeof(HeadlessAppBuilder));
+        await session.Dispatch(async () =>
+        {
+            var store = new MockariumStore(":memory:");
+            var platform = new TestPlatform { ConfirmResult = false };
+            await using var shell = new DesktopViewModel(store, new McpRuntime(store, NullLoggerFactory.Instance), platform, NullLoggerFactory.Instance);
+            shell.WorkspaceName = "Research";
+            await shell.CreateWorkspaceCommand.ExecuteAsync(null);
+            shell.WorkspaceName = "Design lab";
+            await shell.CreateWorkspaceCommand.ExecuteAsync(null);
+            shell.Email.CreateStarterCommand.Execute(null);
+            shell.Email.Subject = "Keep my draft";
+            var window = new MainWindow { Width = 1050, Height = 700 };
+            window.Initialize(shell);
+            window.Show();
+            var switcher = window.FindControl<Button>("WorkspaceSwitcher")!;
+            var search = window.FindControl<TextBox>("WorkspaceFilter")!;
+            Click(window, switcher);
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(search.IsFocused);
+            window.KeyTextInput("res");
+            Dispatcher.UIThread.RunJobs();
+            var choice = Assert.Single(window.GetVisualDescendants().OfType<Button>(),
+                button => button.Command == shell.ChooseWorkspaceCommand);
+            Assert.Equal("Research", ControlAutomationPeer.CreatePeerForElement(choice)!.GetName());
+            Click(window, choice);
+            Assert.Equal(1, platform.ConfirmationCount);
+            Assert.Equal("Design lab", shell.SelectedWorkspace?.Name);
+            Assert.Equal("Keep my draft", shell.Email.Subject);
+            Assert.True(shell.WorkspacePickerOpen);
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(shell.WorkspacePickerOpen);
+            Assert.True(switcher.IsFocused);
+
+            Click(window, switcher);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("", search.Text);
+            SaveFrame(window, "workspace-picker");
+            var research = window.GetVisualDescendants().OfType<Button>().Single(button =>
+                button.Command == shell.ChooseWorkspaceCommand && ControlAutomationPeer.CreatePeerForElement(button)!.GetName() == "Research");
+            platform.ConfirmResult = true;
+            Click(window, research);
+            Assert.Equal("Research", shell.SelectedWorkspace?.Name);
+            Assert.False(shell.WorkspacePickerOpen);
+            window.Close();
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task DatabaseTableRemovalButtonPreservesRecordDraftWhenConfirmationIsDeclined()
     {
         using var session = HeadlessUnitTestSession.StartNew(typeof(HeadlessAppBuilder));
@@ -57,6 +112,14 @@ public sealed class DesktopUiTests
             Click(window, navigationButton);
             Dispatcher.UIThread.RunJobs();
             var view = window.GetVisualDescendants().OfType<DatabaseStudioView>().Single();
+            shell.DismissNoticeCommand.Execute(null);
+            SaveFrame(window, "database");
+            var appearance = window.FindControl<ToggleButton>("AppearanceSwitch")!;
+            Click(window, appearance);
+            SaveFrame(window, "database-night");
+            window.Width = window.MinWidth;
+            window.Height = window.MinHeight;
+            Dispatcher.UIThread.RunJobs();
             var recordInput = view.GetVisualDescendants().OfType<TextBox>()
                 .Single(input => ReferenceEquals(input.DataContext, name));
             Assert.Equal(name.Label, ControlAutomationPeer.CreatePeerForElement(recordInput)!.GetName());
@@ -66,6 +129,8 @@ public sealed class DesktopUiTests
             Dispatcher.UIThread.RunJobs();
             var removeTable = view.GetVisualDescendants().OfType<Button>()
                 .Single(button => button.Command == database.RemoveTableCommand);
+            removeTable.BringIntoView();
+            await WaitForHitTargetAsync(window, removeTable);
             Assert.Equal("Remove table", ControlAutomationPeer.CreatePeerForElement(removeTable)!.GetName());
 
             platform.ConfirmResult = false;
@@ -118,19 +183,30 @@ public sealed class DesktopUiTests
         Assert.False(createWorkspace.IsEffectivelyVisible);
         shell.DismissNoticeCommand.Execute(null);
         SaveFrame(window, "overview");
-        var night = window.FindControl<RadioButton>("NightModeButton")!;
-        var day = window.FindControl<RadioButton>("DayModeButton")!;
+        var appearance = window.FindControl<ToggleButton>("AppearanceSwitch")!;
         var dayBackground = ((ISolidColorBrush)window.Background!).Color;
-        Click(window, night);
+        appearance.Focus();
+        window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
+        window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, " ");
         Dispatcher.UIThread.RunJobs();
         Assert.Equal(ThemeVariant.Dark, window.ActualThemeVariant);
         Assert.NotEqual(dayBackground, ((ISolidColorBrush)window.Background!).Color);
-        Assert.True(night.IsChecked);
+        Assert.True(appearance.IsChecked);
         SaveFrame(window, "overview-night");
 
         Click(window, window.FindControl<Button>("EmailNavigationButton")!);
         Dispatcher.UIThread.RunJobs();
         Assert.Contains(window.GetVisualDescendants(), control => control is EmailStudioView);
+        var emailView = window.GetVisualDescendants().OfType<EmailStudioView>().Single();
+        var editorTabs = emailView.GetVisualDescendants().OfType<TabControl>().Single();
+        Assert.False(editorTabs.IsEffectivelyVisible);
+        var setup = emailView.GetVisualDescendants().OfType<Button>().Single(button => button.Command == shell.Email.CreateStarterCommand);
+        SaveFrame(window, "email-setup");
+        Click(window, setup);
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(editorTabs.IsEffectivelyVisible);
+        Assert.NotNull(editorTabs.PageTransition);
+        Assert.False(shell.Email.IsRunning);
         var start = window.GetVisualDescendants().OfType<Button>()
             .Single(button => button.Content?.ToString() == "Start server");
         Click(window, start);
@@ -140,7 +216,6 @@ public sealed class DesktopUiTests
         Assert.Equal(3, shell.Email.Messages.Count);
         Dispatcher.UIThread.RunJobs();
         Assert.Equal("Inbox", shell.Email.EditFolder);
-        var emailView = window.GetVisualDescendants().OfType<EmailStudioView>().Single();
         var folderSelector = emailView.FindControl<ComboBox>("MessageFolderSelector")!;
         Assert.Equal("Inbox", folderSelector.SelectedItem);
         Assert.Equal("Message folder", ControlAutomationPeer.CreatePeerForElement(folderSelector)!.GetName());
@@ -150,14 +225,26 @@ public sealed class DesktopUiTests
         var nightEditor = ((ISolidColorBrush)subjectInput.Background!).Color;
         shell.Email.Subject = "Local draft";
         var endpoint = shell.Email.Endpoint;
-        Click(window, day);
+        var connection = emailView.GetVisualDescendants().OfType<ToggleButton>()
+            .Single(button => Equals(button.Content, "Connection and tools"));
+        Click(window, connection);
+        Dispatcher.UIThread.RunJobs();
+        var copy = emailView.GetVisualDescendants().OfType<Button>().Single(button => button.Command == shell.Email.CopyConfigurationCommand);
+        Assert.True(copy.IsEffectivelyVisible);
+        Click(window, copy);
+        Assert.Equal("Client configuration copied.", shell.Notice);
+        Click(window, connection);
+        Dispatcher.UIThread.RunJobs();
+        Assert.False(copy.IsEffectivelyVisible);
+        Click(window, appearance);
         Dispatcher.UIThread.RunJobs();
         Assert.Equal(ThemeVariant.Light, window.ActualThemeVariant);
         Assert.NotEqual(nightEditor, ((ISolidColorBrush)subjectInput.Background!).Color);
         Assert.Equal("Local draft", subjectInput.Text);
         Assert.Equal(endpoint, shell.Email.Endpoint);
+        shell.DismissNoticeCommand.Execute(null);
         SaveFrame(window, "email");
-        Click(window, night);
+        Click(window, appearance);
         Dispatcher.UIThread.RunJobs();
         SaveFrame(window, "email-night");
 
@@ -166,6 +253,10 @@ public sealed class DesktopUiTests
         Click(window, motion);
         Assert.True(shell.ReduceMotion);
         Assert.Null(window.FindControl<Button>("EmailNavigationButton")!.Transitions);
+        Assert.Null(editorTabs.PageTransition);
+        window.Width = window.MinWidth;
+        window.Height = window.MinHeight;
+        Dispatcher.UIThread.RunJobs();
         var emailScroll = emailView.GetVisualAncestors().OfType<ScrollViewer>().First();
         emailScroll.ScrollToEnd();
         Dispatcher.UIThread.RunJobs();
@@ -180,6 +271,9 @@ public sealed class DesktopUiTests
         Click(window, create);
         Dispatcher.UIThread.RunJobs();
         Assert.True(shell.Calendar.IsConfigured, shell.Error);
+        shell.DismissNoticeCommand.Execute(null);
+        SaveFrame(window, "calendar-night");
+        Click(window, appearance);
         SaveFrame(window, "calendar");
         var planner = calendarView.FindControl<WeekPlannerControl>("WeekPlanner")!;
         var block = shell.Calendar.WeekBlocks.Single(item => item.Event.Id == "event-vendor-review");
@@ -225,6 +319,22 @@ public sealed class DesktopUiTests
             ?? throw new InvalidOperationException("The control is not in the window.");
         window.MouseDown(point, MouseButton.Left, RawInputModifiers.None);
         window.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
+    }
+
+    private static async Task WaitForHitTargetAsync(Window window, Control control)
+    {
+        Visual? hit = null;
+        Point? center = null;
+        for (var attempt = 0; attempt < 60; attempt++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            center = control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window);
+            hit = center is { } point ? window.InputHitTest(point) as Visual : null;
+            if (hit == control || hit?.GetVisualAncestors().Contains(control) == true) return;
+            await Task.Delay(16);
+        }
+        Assert.Fail($"Expected {control} at {center}, but hit {hit}. Control bounds: {control.Bounds}.");
     }
 
     private static void SaveFrame(Window window, string name)

@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using System.ComponentModel;
 using Mockarium.ViewModels;
 
@@ -26,6 +27,12 @@ public partial class MainWindow : Window
     {
         if (e.PropertyName == nameof(DesktopViewModel.IsNightMode))
             Application.Current!.RequestedThemeVariant = _viewModel!.IsNightMode ? ThemeVariant.Dark : ThemeVariant.Light;
+        else if (e.PropertyName == nameof(DesktopViewModel.WorkspacePickerOpen))
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_viewModel!.WorkspacePickerOpen) WorkspaceFilter.Focus();
+                else if (_viewModel.HasWorkspace) WorkspaceSwitcher.Focus();
+            }, DispatcherPriority.Loaded);
     }
 
     protected override void OnClosed(EventArgs e)

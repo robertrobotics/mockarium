@@ -47,6 +47,9 @@ public sealed partial class EmailStudioViewModel : StudioViewModel
             "A realistic mailbox for safe, stateful agent conversations.", "✉") { }
 
     public ObservableCollection<string> Folders { get; } = [];
+    public override StarterGuide Starter { get; } = new("Build your test inbox",
+        "Start with a mailbox identity, contacts and three inbox messages. No real email is sent.",
+        "Open a message, change its subject, and save it. Your agent will read the version you saved.");
     public ObservableCollection<EmailMessage> Messages { get; } = [];
     public ObservableCollection<EmailContact> Contacts { get; } = [];
     private bool MessageHasChanges => _savedMessageForm is not null && _savedMessageForm != CurrentMessageForm();

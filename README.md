@@ -6,7 +6,7 @@ Mockarium is a local-first desktop application for testing AI agents against sim
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/media/overview-night.png">
-  <img src="docs/media/overview.png" alt="Mockarium workbench with a live server count, studio collection, and Day and Night controls.">
+  <img src="docs/media/overview.png" alt="Mockarium workbench with the workspace switcher, studio collection, live server count and night mode switch.">
 </picture>
 
 ## Desktop applications
@@ -44,13 +44,18 @@ dotnet run --project src/Mockarium.Wpf
 ## First workspace
 
 Enter a name on the overview and press **Enter** to create your workspace.
-Open a studio to edit its starter data, or choose **Start server** to create
-the starter data and start listening in one step. Copy the configuration to
-your MCP client, then use **Live Inspector** to see its requests and results.
+Open a studio and choose **Create starter data** to edit offline. You can also
+choose **Start server** directly on its overview card to set up and listen in
+one step. In the studio, open **Connection and tools** to copy the configuration
+to your MCP client, then use **Live Inspector** to see its requests and results.
 Nothing connects to a real service. The overview shows how many studio
 servers are running in the selected workspace.
 
-Choose **Day** or **Night** in the top bar at any time. The choice is saved
+Click the workspace name in the sidebar and type to find another workspace.
+Choose a result to switch, or press **Esc** to return. **Manage** contains the
+create, rename and delete actions. Switching asks before discarding a draft.
+
+Toggle **Night mode** in the top bar at any time. The choice is saved
 on this device across workspaces and restarts. Switching does not interrupt
 a running server or discard an editor draft. **Reduce motion** is a separate
 preference in the sidebar. [Preview day mode](docs/media/overview.png) ·
@@ -78,19 +83,23 @@ dotnet test -c Release --no-build
 
 ### Email Studio
 
-Customize mailbox identity, messages, folders, and contacts. Simulated send,
+Browse a folder and search its messages beside the composer. Open **Sender
+and delivery details** for timestamps and reply threading. Simulated send,
 reply, and draft tools never contact a real email provider.
+[Preview the mailbox](docs/media/email.png).
 
 ### Database Studio
 
-Edit a relational model and sample records. The MCP tools expose validated
+Choose a table, then select a row to edit its fields. Use **Model designer**
+for changes to the schema. The MCP tools expose validated
 record operations, not raw SQL. Save model changes before starting or stopping
-the database server.
+the database server. [Preview the record editor](docs/media/database-night.png).
 
 ### Calendar Studio
 
 Plan a week with draggable events, people in different time zones, working
-hours, invitations, and a simulated clock. No real invitations are sent.
+hours, invitations, and a simulated clock. Use **Agenda** to set precise times
+without dragging. No real invitations are sent. [Preview the week planner](docs/media/calendar.png).
 
 ## Data and migration
 

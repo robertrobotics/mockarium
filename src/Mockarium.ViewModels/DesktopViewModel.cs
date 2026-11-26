@@ -8,6 +8,8 @@ using Mockarium.Core.Storage;
 
 namespace Mockarium.ViewModels;
 
+public sealed record WorkspaceChoice(Workspace Workspace, bool IsCurrent);
+
 public sealed partial class DesktopViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly MockariumStore _store;
@@ -24,6 +26,42 @@ public sealed partial class DesktopViewModel : ObservableObject, IAsyncDisposabl
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateWorkspaceCommand))]
     private string workspaceName = "";
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CloseWorkspacePickerCommand))]
+    private bool workspacePickerOpen;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WorkspaceMatches))]
+    [NotifyPropertyChangedFor(nameof(NoWorkspaceMatches))]
+    private string workspaceQuery = "";
+
+    public IReadOnlyList<WorkspaceChoice> WorkspaceMatches => Workspaces.Where(item =>
+        item.Name.Contains(WorkspaceQuery.Trim(), StringComparison.OrdinalIgnoreCase))
+        .Select(item => new WorkspaceChoice(item, item.Id == SelectedWorkspace?.Id)).ToArray();
+    public bool NoWorkspaceMatches => WorkspaceMatches.Count == 0;
+
+    partial void OnWorkspacePickerOpenChanged(bool value)
+    {
+        WorkspaceQuery = "";
+        if (value)
+        {
+            WorkspaceName = SelectedWorkspace?.Name ?? "";
+            NotifyWorkspaceListChanged();
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleWorkspacePicker() => WorkspacePickerOpen = !WorkspacePickerOpen;
+
+    [RelayCommand(CanExecute = nameof(WorkspacePickerOpen))]
+    private void CloseWorkspacePicker() => WorkspacePickerOpen = false;
+
+    [RelayCommand]
+    private void ChooseWorkspace(Workspace workspace)
+    {
+        if (SelectedWorkspace?.Id == workspace.Id) WorkspacePickerOpen = false;
+        else SelectedWorkspace = workspace;
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
@@ -45,14 +83,7 @@ public sealed partial class DesktopViewModel : ObservableObject, IAsyncDisposabl
     private bool reduceMotion;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsDayMode))]
     private bool isNightMode;
-
-    public bool IsDayMode
-    {
-        get => !IsNightMode;
-        set { if (value) IsNightMode = false; }
-    }
 
     [ObservableProperty]
     private string currentPageTitle = "Overview";
@@ -148,6 +179,7 @@ public sealed partial class DesktopViewModel : ObservableObject, IAsyncDisposabl
 
     private void ActivateWorkspace(Workspace? workspace)
     {
+        WorkspacePickerOpen = false;
         WorkspaceName = workspace?.Name ?? "";
         Email.LoadWorkspace(workspace?.Id);
         Database.LoadWorkspace(workspace?.Id);
@@ -172,6 +204,13 @@ public sealed partial class DesktopViewModel : ObservableObject, IAsyncDisposabl
             _changingWorkspaces = false;
         }
         ActivateWorkspace(SelectedWorkspace);
+        NotifyWorkspaceListChanged();
+    }
+
+    private void NotifyWorkspaceListChanged()
+    {
+        OnPropertyChanged(nameof(WorkspaceMatches));
+        OnPropertyChanged(nameof(NoWorkspaceMatches));
     }
 
     [RelayCommand]
@@ -217,6 +256,7 @@ public sealed partial class DesktopViewModel : ObservableObject, IAsyncDisposabl
         }
         finally { _changingWorkspaces = false; }
         WorkspaceName = renamed.Name;
+        NotifyWorkspaceListChanged();
         Notice = "Workspace renamed.";
     });
 

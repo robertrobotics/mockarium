@@ -58,6 +58,9 @@ public sealed partial class CalendarStudioViewModel : StudioViewModel
             "Plan a believable week across people, time zones, and invitations.", "◷") { }
 
     public ObservableCollection<CalendarPerson> People { get; } = [];
+    public override StarterGuide Starter { get; } = new("Set the scene for a week",
+        "Start with scheduled events, attendees and a simulated clock. No invitations leave this device.",
+        "Move an event on the week grid, or open Agenda and edit its start and end times by keyboard.");
     public ObservableCollection<CalendarEvent> Events { get; } = [];
     public IReadOnlyList<string> EventStatuses { get; } = ["confirmed", "cancelled"];
     private bool PersonHasChanges => _savedPersonForm is not null && _savedPersonForm != CurrentPersonForm();

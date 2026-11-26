@@ -7,22 +7,18 @@
              x:DataType="vm:EmailStudioViewModel">
     <StackPanel>
         <views:StudioHeader/>
-        <TabControl IsEnabled="{Binding IsConfigured}">
+        <TabControl Classes="studio-tabs" IsVisible="{Binding IsConfigured}">
             <TabItem Header="Mailbox">
-                <Grid Margin="12" ColumnDefinitions="170,250,*">
-                    <StackPanel Margin="0,0,12,0">
-                        <TextBlock Text="Folders" Classes="section-title" Margin="0,0,0,10"/>
-                        <ListBox ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedFolder}" AutomationProperties.Name="Mailbox folders" MinHeight="190" MaxHeight="300"/>
-                        <TextBox Text="{Binding NewFolderName, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,0,5"
-                                 PlaceholderText="New folder name" AutomationProperties.Name="New folder name"/>
-                        <Button Content="Add folder" Command="{Binding AddFolderCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,5"/>
-                        <Button Content="Delete folder" Command="{Binding DeleteFolderCommand}" Classes="danger" HorizontalAlignment="Stretch"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                        <DockPanel Margin="0,0,0,10">
-                            <Button DockPanel.Dock="Right" Content="New" Command="{Binding NewMessageCommand}" AutomationProperties.Name="New message" Padding="8,4"/>
-                            <TextBlock Text="Messages" Classes="section-title" VerticalAlignment="Center"/>
+                <Grid Margin="0,10" ColumnDefinitions="0.85*,1.5*">
+                    <Border Classes="card" VerticalAlignment="Top" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="MAILBOX" Foreground="{DynamicResource SecondaryBrush}" FontSize="10" FontWeight="Bold"/>
+                        <DockPanel Margin="0,5,0,12">
+                            <Button DockPanel.Dock="Right" Content="+ New" Command="{Binding NewMessageCommand}" AutomationProperties.Name="New message" Padding="8,4"/>
+                            <TextBlock Text="Messages" Classes="section-title" FontSize="21" VerticalAlignment="Center"/>
                         </DockPanel>
+                        <TextBlock Text="Browse folder" Classes="field-label"/>
+                        <ComboBox ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedFolder}" AutomationProperties.Name="Mailbox folders" Margin="0,0,0,6"/>
                         <TextBox Text="{Binding MessageSearch, UpdateSourceTrigger=PropertyChanged}" MaxLength="250" Margin="0,0,0,6"
                                  PlaceholderText="Search this folder" AutomationProperties.Name="Search this folder"/>
                         <ListBox ItemsSource="{Binding Messages}" SelectedItem="{Binding SelectedMessage}" AutomationProperties.Name="Messages" MinHeight="235" MaxHeight="520">
@@ -36,31 +32,50 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <Button Content="Refresh mailbox" Command="{Binding RefreshCommand}" HorizontalAlignment="Stretch" Margin="0,10,0,0"/>
+                        <TextBlock Text="No messages here. Try another folder or search, or create a message." IsVisible="{Binding !Messages.Count}" Foreground="{DynamicResource MutedBrush}" Margin="0,6,0,0"/>
+                        <Button Content="Refresh mailbox" Command="{Binding RefreshCommand}" Margin="0,10,0,0"/>
+                        <Expander Header="Manage folders" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBox Text="{Binding NewFolderName, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="New folder name" AutomationProperties.Name="New folder name"/>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <Button Content="Add folder" Command="{Binding AddFolderCommand}" Padding="8,5" Margin="0,0,4,4"/>
+                                    <Button Content="Delete folder" Command="{Binding DeleteFolderCommand}" Classes="danger" Padding="8,5"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="Message details" Classes="section-title"/>
-                        <TextBlock Text="Folder" Classes="field-label"/>
-                        <ComboBox x:Name="MessageFolderSelector" ItemsSource="{Binding Folders}" SelectedItem="{Binding EditFolder}" AutomationProperties.Name="Message folder"/>
-                        <TextBlock Text="From name" Classes="field-label"/>
-                        <TextBox Text="{Binding FromName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="From name"/>
-                        <TextBlock Text="From email" Classes="field-label"/>
-                        <TextBox Text="{Binding FromEmail, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="From email"/>
+                    </Border>
+                    <Border Grid.Column="1" Classes="card" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="MESSAGE EDITOR" Foreground="{DynamicResource SecondaryBrush}" FontSize="10" FontWeight="Bold"/>
+                        <TextBlock Text="Compose a message" Classes="section-title" FontSize="21" Margin="0,5,0,2"/>
+                        <TextBlock Text="Start here for a new message, or select one from the list to edit it." Foreground="{DynamicResource MutedBrush}"/>
                         <TextBlock Text="To email" Classes="field-label"/>
                         <TextBox Text="{Binding ToEmail, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="To email"/>
                         <TextBlock Text="Subject" Classes="field-label"/>
                         <TextBox x:Name="MessageSubjectInput" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Message subject"/>
                         <TextBlock Text="Message" Classes="field-label"/>
                         <TextBox Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Message body" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120"/>
-                        <TextBlock Text="Sent at (ISO 8601)" Classes="field-label"/>
-                        <TextBox Text="{Binding SentAt, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Sent at, ISO 8601"/>
-                        <TextBlock Text="Parent message ID (optional)" Classes="field-label"/>
-                        <TextBox Text="{Binding ParentEmailId, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Parent message ID, optional"/>
+                        <TextBlock Text="Save to folder" Classes="field-label"/>
+                        <ComboBox x:Name="MessageFolderSelector" ItemsSource="{Binding Folders}" SelectedItem="{Binding EditFolder}" AutomationProperties.Name="Message folder"/>
+                        <Expander Header="Sender and delivery details" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="From name" Classes="field-label"/>
+                                <TextBox Text="{Binding FromName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="From name"/>
+                                <TextBlock Text="From email" Classes="field-label"/>
+                                <TextBox Text="{Binding FromEmail, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="From email"/>
+                                <TextBlock Text="Sent at (ISO 8601)" Classes="field-label"/>
+                                <TextBox Text="{Binding SentAt, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Sent at, ISO 8601"/>
+                                <TextBlock Text="Parent message ID (optional)" Classes="field-label"/>
+                                <TextBox Text="{Binding ParentEmailId, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Parent message ID, optional"/>
+                            </StackPanel>
+                        </Expander>
                         <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
                             <Button Content="Save message" Command="{Binding SaveMessageCommand}" Classes="primary" Margin="0,0,8,0"/>
                             <Button Content="Delete" Command="{Binding DeleteMessageCommand}" AutomationProperties.Name="Delete message" Classes="danger"/>
                         </StackPanel>
                     </StackPanel>
+                    </Border>
                 </Grid>
             </TabItem>
             <TabItem Header="Identity and contacts">

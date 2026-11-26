@@ -2,11 +2,11 @@
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Mockarium.ViewModels"
-        xmlns:core="using:Mockarium.Core"
         x:DataType="vm:DesktopViewModel"
         Classes.reduced-motion="{Binding ReduceMotion}"
         Title="Mockarium" Width="1440" Height="920" MinWidth="1050" MinHeight="700"
         WindowStartupLocation="CenterScreen">
+    <Window.KeyBindings><KeyBinding Gesture="Escape" Command="{Binding CloseWorkspacePickerCommand}"/></Window.KeyBindings>
     <Grid ColumnDefinitions="240,*">
         <Border Grid.Column="0" Background="{DynamicResource SidebarBrush}" Padding="18,24,18,18">
             <Grid RowDefinitions="Auto,Auto,*,Auto">
@@ -20,25 +20,53 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Row="1" IsVisible="{Binding HasWorkspace}">
-                    <TextBlock Text="WORKSPACE" Foreground="#9DABBE" FontSize="10" FontWeight="Bold" Margin="4,0,0,8"/>
-                    <ComboBox ItemsSource="{Binding Workspaces}" SelectedItem="{Binding SelectedWorkspace}"
-                              ToolTip.Tip="Select a workspace" AutomationProperties.Name="Active workspace">
-                        <ComboBox.ItemTemplate><DataTemplate x:DataType="core:Workspace"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <Expander Header="Manage workspace" AutomationProperties.Name="Manage workspace" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,6,0,0">
-                    <StackPanel>
-                    <TextBox MaxLength="80" Text="{Binding WorkspaceName, UpdateSourceTrigger=PropertyChanged}"
-                             PlaceholderText="Workspace name" AutomationProperties.Name="Workspace name"/>
-                    <UniformGrid Columns="3" Margin="0,6,0,0">
-                        <Button Content="New" AutomationProperties.Name="New workspace" Command="{Binding CreateWorkspaceCommand}" Padding="4,6" Margin="0,0,3,0"/>
-                        <Button Content="Rename" AutomationProperties.Name="Rename workspace" Command="{Binding RenameWorkspaceCommand}" Padding="4,6" Margin="2,0"/>
-                        <Button Content="Delete" AutomationProperties.Name="Delete workspace" Command="{Binding DeleteWorkspaceCommand}" Padding="4,6" Margin="3,0,0,0"/>
-                    </UniformGrid>
-                    </StackPanel>
-                    </Expander>
+                    <Button x:Name="WorkspaceSwitcher" Classes="workspace-switch" Command="{Binding ToggleWorkspacePickerCommand}" AutomationProperties.Name="{Binding SelectedWorkspace.Name, StringFormat='Switch workspace: {0}'}"
+                            ToolTip.Tip="Switch or manage workspaces" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                            Background="{DynamicResource SubtleBrush}" CornerRadius="12" Padding="12,10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Text="WORKSPACE" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource MutedBrush}"/>
+                                <TextBlock Text="{Binding SelectedWorkspace.Name}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" VerticalAlignment="Center" Margin="6,0,0,0" Data="M1,5 L5,1 9,5 M1,9 L5,13 9,9" Stroke="{DynamicResource MutedBrush}" StrokeThickness="1.5"/>
+                        </Grid>
+                    </Button>
                     <Border Height="1" Background="#2A3548" Margin="0,20,0,14"/>
                 </StackPanel>
-                <StackPanel Grid.Row="2">
+                <ScrollViewer Grid.Row="2" Classes.revealed="{Binding WorkspacePickerOpen}" IsVisible="{Binding WorkspacePickerOpen}">
+                    <StackPanel>
+                        <TextBlock Text="SWITCH WORKSPACE" FontSize="10" FontWeight="Bold" Foreground="#B4C6C4" Margin="2,0,0,8"/>
+                        <TextBox x:Name="WorkspaceFilter" Text="{Binding WorkspaceQuery, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Find a workspace…" AutomationProperties.Name="Find a workspace"/>
+                        <TextBlock Text="No matching workspaces." Foreground="#D6E8E1" Margin="2,6" IsVisible="{Binding NoWorkspaceMatches}"/>
+                        <ScrollViewer MaxHeight="180" Margin="0,6,0,0">
+                            <ItemsControl ItemsSource="{Binding WorkspaceMatches}">
+                                <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:WorkspaceChoice">
+                                    <Button Classes="nav" Classes.active="{Binding IsCurrent}" AutomationProperties.Name="{Binding Workspace.Name}" ToolTip.Tip="{Binding Workspace.Name}" HorizontalContentAlignment="Stretch"
+                                            CommandParameter="{Binding Workspace}" Command="{Binding $parent[Window].((vm:DesktopViewModel)DataContext).ChooseWorkspaceCommand}">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right" Text="✓" Margin="5,0,0,0" IsVisible="{Binding IsCurrent}"/>
+                                            <TextBlock Text="{Binding Workspace.Name}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                        </DockPanel>
+                                    </Button>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <Expander Header="Manage" Margin="0,12,0,6" HorizontalAlignment="Stretch" AutomationProperties.Name="Manage workspaces" HorizontalContentAlignment="Stretch" Padding="8"
+                                  Background="{DynamicResource SubtleBrush}" Foreground="{DynamicResource InkBrush}">
+                        <StackPanel>
+                        <TextBlock Text="Enter a name to create a workspace or rename the active one." FontSize="12" Foreground="{DynamicResource MutedBrush}" Margin="2,0,0,8"/>
+                        <TextBox MaxLength="80" Text="{Binding WorkspaceName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Workspace name"/>
+                        <WrapPanel Margin="0,6,0,6">
+                            <Button Content="Create" Command="{Binding CreateWorkspaceCommand}" AutomationProperties.Name="Create workspace" Padding="8,5" Margin="0,0,4,0"/>
+                            <Button Content="Rename" Command="{Binding RenameWorkspaceCommand}" AutomationProperties.Name="Rename workspace" Padding="8,5" Margin="0,0,4,0"/>
+                            <Button Content="Delete" Command="{Binding DeleteWorkspaceCommand}" AutomationProperties.Name="Delete workspace" Classes="danger" Padding="8,5"/>
+                        </WrapPanel>
+                        </StackPanel>
+                        </Expander>
+                        <Button Classes="nav" Content="Back to navigation" Command="{Binding CloseWorkspacePickerCommand}"/>
+                    </StackPanel>
+                </ScrollViewer>
+                <StackPanel Grid.Row="2" IsVisible="{Binding !WorkspacePickerOpen}">
                     <TextBlock Text="EXPLORE" Foreground="#9DABBE" FontSize="10" FontWeight="Bold" Margin="4,0,0,8"/>
                     <Button Classes="nav" Classes.active="{Binding IsOverview}" Content="◈    Overview" Command="{Binding NavigateCommand}" CommandParameter="overview"/>
                     <Button x:Name="EmailNavigationButton" Classes="nav" Classes.active="{Binding IsEmail}" IsEnabled="{Binding HasWorkspace}" Content="✉    Email Studio" Command="{Binding NavigateCommand}" CommandParameter="email"/>
@@ -58,17 +86,18 @@
         <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
             <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="30,10">
                 <DockPanel>
-                    <Border DockPanel.Dock="Right" Background="{DynamicResource SubtleBrush}" CornerRadius="18" Padding="3">
-                        <StackPanel Orientation="Horizontal">
-                            <RadioButton x:Name="DayModeButton" Classes="mode" GroupName="Appearance" Content="Day" AutomationProperties.Name="Day mode" IsChecked="{Binding IsDayMode, Mode=TwoWay}"/>
-                            <RadioButton x:Name="NightModeButton" Classes="mode" GroupName="Appearance" Content="Night" AutomationProperties.Name="Night mode" IsChecked="{Binding IsNightMode, Mode=TwoWay}"/>
-                        </StackPanel>
-                    </Border>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <ToggleButton x:Name="AppearanceSwitch" DockPanel.Dock="Right" Classes="appearance" IsChecked="{Binding IsNightMode, Mode=TwoWay}" AutomationProperties.Name="Night mode" ToolTip.Tip="Toggle night mode"/>
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="WORKBENCH" Foreground="{DynamicResource MutedBrush}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
                         <TextBlock Text="   /   " Foreground="{DynamicResource MutedBrush}"/>
                         <TextBlock Text="{Binding CurrentPageTitle}" FontWeight="SemiBold"/>
                     </StackPanel>
+                    <Border IsVisible="{Binding HasNotice}" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource PositiveSoftBrush}" CornerRadius="10" Margin="12,0" Padding="8,2">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="×" Command="{Binding DismissNoticeCommand}" AutomationProperties.Name="Dismiss notice" Padding="5,0" MinHeight="22" Background="Transparent" BorderThickness="0"/>
+                            <TextBlock Text="{Binding Notice}" ToolTip.Tip="{Binding Notice}" AutomationProperties.LiveSetting="Polite" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontSize="12" Foreground="{DynamicResource PositiveBrush}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </Border>
                 </DockPanel>
             </Border>
             <StackPanel Grid.Row="1" Margin="30,10,30,0">
@@ -76,12 +105,6 @@
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissErrorCommand}" Padding="8,4"/>
                         <TextBlock Text="{Binding Error}" Foreground="{DynamicResource DangerBrush}" VerticalAlignment="Center"/>
-                    </DockPanel>
-                </Border>
-                <Border Background="{DynamicResource PositiveSoftBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,4,0,0" IsVisible="{Binding HasNotice}">
-                    <DockPanel>
-                        <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissNoticeCommand}" Padding="8,4"/>
-                        <TextBlock Text="{Binding Notice}" Foreground="{DynamicResource PositiveBrush}" VerticalAlignment="Center"/>
                     </DockPanel>
                 </Border>
             </StackPanel>

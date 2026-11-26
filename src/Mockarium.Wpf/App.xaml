@@ -7,28 +7,48 @@
     <Application.Resources>
         <BooleanToVisibilityConverter x:Key="BoolVisibility"/>
         <local:InverseBooleanToVisibilityConverter x:Key="InverseBoolVisibility"/>
-        <Style x:Key="ModeOption" TargetType="RadioButton">
-            <Setter Property="MinHeight" Value="28"/>
-            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
+        <Style x:Key="AppearanceSwitch" TargetType="ToggleButton">
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="RadioButton">
-                        <Border CornerRadius="14" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="2" Padding="13,3">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Frame" CornerRadius="18" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" Padding="7,2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Night mode" Foreground="{DynamicResource MutedBrush}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,9,0"/>
+                                <Border Width="56" Height="28" CornerRadius="14" Background="{DynamicResource SubtleBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                                    <Grid Margin="2">
+                                        <Canvas><Border x:Name="Thumb" Width="22" Height="22" Canvas.Left="0" CornerRadius="11" Background="{DynamicResource WarmBrush}"/></Canvas>
+                                        <Path x:Name="Sun" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="4,0" Data="M7,3 A4,4 0 1 0 7,11 A4,4 0 1 0 7,3 M7,0 V2 M7,12 V14 M0,7 H2 M12,7 H14 M2,2 L3.5,3.5 M10.5,10.5 L12,12 M2,12 L3.5,10.5 M10.5,3.5 L12,2" Stroke="{DynamicResource SurfaceBrush}" StrokeThickness="1.5"/>
+                                        <Path x:Name="Moon" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,0" Data="M11,10 A6,6 0 0 1 4,1 A6,6 0 1 0 11,10 Z" Fill="{DynamicResource MutedBrush}"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Thumb" Property="Canvas.Left" Value="28"/>
+                                <Setter TargetName="Thumb" Property="Background" Value="{DynamicResource SecondaryBrush}"/>
+                                <Setter TargetName="Sun" Property="Stroke" Value="{DynamicResource MutedBrush}"/>
+                                <Setter TargetName="Moon" Property="Fill" Value="{DynamicResource SurfaceBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding DataContext.ReduceMotion, RelativeSource={RelativeSource AncestorType=Window}}" Value="False"/>
+                                    <Condition Binding="{Binding Source={x:Static SystemParameters.ClientAreaAnimation}}" Value="True"/>
+                                    <Condition Binding="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}}" Value="True"/>
+                                </MultiDataTrigger.Conditions>
+                                <MultiDataTrigger.EnterActions>
+                                    <BeginStoryboard Name="Slide"><Storyboard><DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(Canvas.Left)" From="0" To="28" Duration="0:0:0.16" FillBehavior="Stop"/></Storyboard></BeginStoryboard>
+                                </MultiDataTrigger.EnterActions>
+                                <MultiDataTrigger.ExitActions><RemoveStoryboard BeginStoryboardName="Slide"/></MultiDataTrigger.ExitActions>
+                            </MultiDataTrigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-                    <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}"/>
-                    <Setter Property="FontWeight" Value="Bold"/>
-                </Trigger>
-                <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource InkBrush}"/></Trigger>
-            </Style.Triggers>
         </Style>
 
         <Style TargetType="Window">
@@ -177,6 +197,20 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="StudioMark" TargetType="Path">
+            <Setter Property="Data" Value="M2,5 H26 V22 H2 Z M2,6 L14,15 26,6"/>
+            <Setter Property="Stroke" Value="{DynamicResource SecondaryBrush}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Type}" Value="database">
+                    <Setter Property="Data" Value="M3,6 C3,0 25,0 25,6 C25,12 3,12 3,6 Z M3,6 V21 C3,27 25,27 25,21 V6 M3,14 C3,20 25,20 25,14"/>
+                    <Setter Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Type}" Value="calendar">
+                    <Setter Property="Data" Value="M3,5 H25 V25 H3 Z M3,11 H25 M8,2 V8 M20,2 V8 M8,16 H12 M16,16 H20 M8,20 H12"/>
+                    <Setter Property="Stroke" Value="{DynamicResource WarmBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="StudioStatusBadge" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource SubtleBrush}"/>
             <Setter Property="TextElement.Foreground" Value="{DynamicResource MutedBrush}"/>
@@ -193,13 +227,13 @@
             <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
         </Style>
 
-        <Style x:Key="Page" TargetType="UserControl">
-            <Setter Property="Margin" Value="30,24,30,32"/>
+        <Style x:Key="PanelEntrance" TargetType="FrameworkElement">
             <Style.Triggers>
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding DataContext.ReduceMotion, RelativeSource={RelativeSource AncestorType=Window}}" Value="False"/>
                         <Condition Binding="{Binding Source={x:Static SystemParameters.ClientAreaAnimation}}" Value="True"/>
+                        <Condition Binding="{Binding IsVisible, RelativeSource={RelativeSource Self}}" Value="True"/>
                     </MultiDataTrigger.Conditions>
                     <MultiDataTrigger.EnterActions>
                         <BeginStoryboard Name="PageFade"><Storyboard>
@@ -209,6 +243,9 @@
                     <MultiDataTrigger.ExitActions><RemoveStoryboard BeginStoryboardName="PageFade"/></MultiDataTrigger.ExitActions>
                 </MultiDataTrigger>
             </Style.Triggers>
+        </Style>
+        <Style x:Key="Page" TargetType="UserControl" BasedOn="{StaticResource PanelEntrance}">
+            <Setter Property="Margin" Value="30,24,30,32"/>
         </Style>
         <DataTemplate DataType="{x:Type vm:OverviewViewModel}"><ScrollViewer VerticalScrollBarVisibility="Auto"><views:OverviewView Style="{StaticResource Page}"/></ScrollViewer></DataTemplate>
         <DataTemplate DataType="{x:Type vm:EmailStudioViewModel}"><ScrollViewer VerticalScrollBarVisibility="Auto"><views:EmailStudioView Style="{StaticResource Page}"/></ScrollViewer></DataTemplate>

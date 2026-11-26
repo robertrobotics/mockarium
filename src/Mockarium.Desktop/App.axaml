@@ -18,29 +18,52 @@
                 <ColorPaletteResources x:Key="Dark" Accent="#78E2C4"/>
             </FluentTheme.Palettes>
         </FluentTheme>
-        <Style Selector="RadioButton.mode">
+        <Style Selector="ToggleButton.appearance">
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <ControlTemplate>
-                    <Border CornerRadius="14" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="2" Padding="13,3">
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Border x:Name="Frame" CornerRadius="18" BorderThickness="1" BorderBrush="Transparent" Background="Transparent" Padding="7,2">
+                        <StackPanel Orientation="Horizontal" Spacing="9">
+                            <TextBlock Text="Night mode" Foreground="{DynamicResource MutedBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Border Width="56" Height="28" Background="{DynamicResource SubtleBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14">
+                                <Grid Margin="2">
+                                    <Border x:Name="Thumb" Width="22" HorizontalAlignment="Left" CornerRadius="11"/>
+                                    <Path x:Name="Sun" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="4,0" Data="M7,3 A4,4 0 1 0 7,11 A4,4 0 1 0 7,3 M7,0 V2 M7,12 V14 M0,7 H2 M12,7 H14 M2,2 L3.5,3.5 M10.5,10.5 L12,12 M2,12 L3.5,10.5 M10.5,3.5 L12,2" StrokeThickness="1.5"/>
+                                    <Path x:Name="Moon" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,0" Data="M11,10 A6,6 0 0 1 4,1 A6,6 0 1 0 11,10 Z"/>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
                     </Border>
                 </ControlTemplate>
             </Setter>
-            <Setter Property="MinHeight" Value="28"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
         </Style>
-        <Style Selector="RadioButton.mode:checked">
-            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}"/>
-            <Setter Property="FontWeight" Value="Bold"/>
+        <Style Selector="ToggleButton.appearance /template/ Border#Thumb">
+            <Setter Property="Background" Value="{DynamicResource WarmBrush}"/>
+            <Setter Property="RenderTransform" Value="translateX(0px)"/>
         </Style>
-        <Style Selector="RadioButton.mode:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource InkBrush}"/></Style>
+        <Style Selector="ToggleButton.appearance:checked /template/ Border#Thumb">
+            <Setter Property="RenderTransform" Value="translateX(28px)"/>
+            <Setter Property="Background" Value="{DynamicResource SecondaryBrush}"/>
+        </Style>
+        <Style Selector="ToggleButton.appearance /template/ Path#Sun"><Setter Property="Stroke" Value="{DynamicResource SurfaceBrush}"/></Style>
+        <Style Selector="ToggleButton.appearance /template/ Path#Moon"><Setter Property="Fill" Value="{DynamicResource MutedBrush}"/></Style>
+        <Style Selector="ToggleButton.appearance:checked /template/ Path#Sun"><Setter Property="Stroke" Value="{DynamicResource MutedBrush}"/></Style>
+        <Style Selector="ToggleButton.appearance:checked /template/ Path#Moon"><Setter Property="Fill" Value="{DynamicResource SurfaceBrush}"/></Style>
+        <Style Selector=":is(Window):not(.reduced-motion) ToggleButton.appearance /template/ Border#Thumb">
+            <Setter Property="Transitions"><Transitions><TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.16"/></Transitions></Setter>
+        </Style>
+        <Style Selector="ToggleButton.appearance:pointerover /template/ Border#Frame, ToggleButton.appearance:focus-visible /template/ Border#Frame">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+        </Style>
+        <Style Selector=":is(Window):not(.reduced-motion) TabControl.studio-tabs">
+            <Setter Property="PageTransition"><CrossFade Duration="0:0:0.14"/></Setter>
+        </Style>
+        <Style Selector=":is(Window).reduced-motion TabControl.studio-tabs"><Setter Property="PageTransition" Value="{x:Null}"/></Style>
         <Style Selector=":is(UserControl).page">
             <Setter Property="Margin" Value="30,24,30,32"/>
         </Style>
-        <Style Selector=":is(Window):not(.reduced-motion) :is(UserControl).page">
+        <Style Selector=":is(Window):not(.reduced-motion) :is(UserControl).page, :is(Window):not(.reduced-motion) Border.revealed, :is(Window):not(.reduced-motion) ScrollViewer.revealed">
             <Style.Animations>
                 <Animation Duration="0:0:0.16">
                     <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0.75"/></KeyFrame>
@@ -71,6 +94,10 @@
             </Setter>
         </Style>
         <Style Selector="Button:pointerover"><Setter Property="Opacity" Value="0.86"/></Style>
+        <Style Selector="Button.workspace-switch:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.workspace-switch:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SubtleBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+        </Style>
         <Style Selector="Button:pressed"><Setter Property="Opacity" Value="0.72"/></Style>
         <Style Selector=":is(Window).reduced-motion Button"><Setter Property="Transitions" Value="{x:Null}"/></Style>
         <Style Selector="Button.primary">
@@ -141,6 +168,18 @@
             </Setter>
         </Style>
         <Style Selector="Border.studio-icon"><Setter Property="Background" Value="{DynamicResource SecondarySoftBrush}"/></Style>
+        <Style Selector="Path.studio-mark">
+            <Setter Property="Data" Value="M2,5 H26 V22 H2 Z M2,6 L14,15 26,6"/>
+            <Setter Property="Stroke" Value="{DynamicResource SecondaryBrush}"/>
+        </Style>
+        <Style Selector="Path.studio-mark[Tag=database]">
+            <Setter Property="Data" Value="M3,6 C3,0 25,0 25,6 C25,12 3,12 3,6 Z M3,6 V21 C3,27 25,27 25,21 V6 M3,14 C3,20 25,20 25,14"/>
+            <Setter Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+        </Style>
+        <Style Selector="Path.studio-mark[Tag=calendar]">
+            <Setter Property="Data" Value="M3,5 H25 V25 H3 Z M3,11 H25 M8,2 V8 M20,2 V8 M8,16 H12 M16,16 H20 M8,20 H12"/>
+            <Setter Property="Stroke" Value="{DynamicResource WarmBrush}"/>
+        </Style>
         <Style Selector="Border.studio-icon TextBlock"><Setter Property="Foreground" Value="{DynamicResource SecondaryBrush}"/></Style>
         <Style Selector="Border.studio-icon[Tag=database]"><Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/></Style>
         <Style Selector="Border.studio-icon[Tag=database] TextBlock"><Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/></Style>

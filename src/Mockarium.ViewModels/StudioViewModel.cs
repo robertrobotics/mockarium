@@ -9,6 +9,7 @@ using Mockarium.Core.Storage;
 namespace Mockarium.ViewModels;
 
 public sealed record ToolViewModel(string Name, string Description, string Inputs, string Schema);
+public sealed record StarterGuide(string Title, string Contents, string FirstTask);
 
 public abstract partial class StudioViewModel : ObservableObject
 {
@@ -57,6 +58,7 @@ public abstract partial class StudioViewModel : ObservableObject
     public string Title { get; }
     public string Description { get; }
     public string Symbol { get; }
+    public abstract StarterGuide Starter { get; }
     public string StatusText => IsRunning ? "Running" : IsConfigured ? "Not running" : "Not set up";
     public string ToggleText => IsRunning ? "Stop server" : "Start server";
     public bool HasEndpoint => !string.IsNullOrEmpty(Endpoint);

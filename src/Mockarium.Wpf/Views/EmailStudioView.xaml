@@ -4,25 +4,19 @@
              xmlns:views="clr-namespace:Mockarium.Wpf.Views">
     <StackPanel>
         <views:StudioHeader/>
-        <TabControl IsEnabled="{Binding IsConfigured}">
+        <TabControl Visibility="{Binding IsConfigured, Converter={StaticResource BoolVisibility}}">
             <TabItem Header="Mailbox">
-                <Grid Margin="12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="170"/><ColumnDefinition Width="250"/><ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Margin="0,0,12,0">
-                        <TextBlock Text="Folders" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"/>
-                        <ListBox ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedFolder}" AutomationProperties.Name="Mailbox folders" MinHeight="190" MaxHeight="300"/>
-                        <TextBox Text="{Binding NewFolderName, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,0,5"
-                                 ToolTip="New folder name" AutomationProperties.Name="New folder name"/>
-                        <Button Content="Add folder" Command="{Binding AddFolderCommand}" Margin="0,0,0,5"/>
-                        <Button Content="Delete folder" Command="{Binding DeleteFolderCommand}" Style="{StaticResource DangerButton}"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                        <DockPanel Margin="0,0,0,10">
-                            <Button DockPanel.Dock="Right" Content="New" Command="{Binding NewMessageCommand}" AutomationProperties.Name="New message" Padding="8,4"/>
-                            <TextBlock Text="Messages" Style="{StaticResource SectionTitle}" VerticalAlignment="Center"/>
+                <Grid Margin="0,10" Style="{StaticResource PanelEntrance}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="0.85*"/><ColumnDefinition Width="1.5*"/></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource Card}" VerticalAlignment="Top" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="MAILBOX" Foreground="{DynamicResource SecondaryBrush}" FontSize="10" FontWeight="Bold"/>
+                        <DockPanel Margin="0,5,0,12">
+                            <Button DockPanel.Dock="Right" Content="+ New" Command="{Binding NewMessageCommand}" AutomationProperties.Name="New message" Padding="8,4"/>
+                            <TextBlock Text="Messages" Style="{StaticResource SectionTitle}" FontSize="21" VerticalAlignment="Center"/>
                         </DockPanel>
+                        <TextBlock Text="Browse folder" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedFolder}" AutomationProperties.Name="Mailbox folders"/>
                         <TextBlock Text="Search this folder" Style="{StaticResource FieldLabel}"/>
                         <TextBox Text="{Binding MessageSearch, UpdateSourceTrigger=PropertyChanged}" MaxLength="250" Margin="0,0,0,6" AutomationProperties.Name="Search this folder"/>
                         <ListBox ItemsSource="{Binding Messages}" SelectedItem="{Binding SelectedMessage}" AutomationProperties.Name="Messages" MinHeight="235" MaxHeight="520">
@@ -36,35 +30,59 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <Button Content="Refresh mailbox" Command="{Binding RefreshCommand}" Margin="0,10,0,0"/>
+                        <TextBlock Text="No messages here. Try another folder or search, or create a message." Margin="0,6,0,0" Foreground="{DynamicResource MutedBrush}">
+                            <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                <Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Messages.Count}" Value="0"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                            </Style></TextBlock.Style>
+                        </TextBlock>
+                        <Button Content="Refresh mailbox" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                        <Expander Header="Manage folders" HorizontalContentAlignment="Stretch" Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBlock Text="New folder name" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding NewFolderName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="New folder name"/>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <Button Content="Add folder" Command="{Binding AddFolderCommand}" Padding="8,5" Margin="0,0,4,4"/>
+                                    <Button Content="Delete folder" Command="{Binding DeleteFolderCommand}" Style="{StaticResource DangerButton}" Padding="8,5"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="Message details" Style="{StaticResource SectionTitle}"/>
-                        <TextBlock Text="Folder" Style="{StaticResource FieldLabel}"/>
-                        <ComboBox ItemsSource="{Binding Folders}" SelectedItem="{Binding EditFolder}" AutomationProperties.Name="Message folder"/>
-                        <TextBlock Text="From name" Style="{StaticResource FieldLabel}"/>
-                        <TextBox Text="{Binding FromName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="From name"/>
-                        <TextBlock Text="From email" Style="{StaticResource FieldLabel}"/>
-                        <TextBox Text="{Binding FromEmail, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="From email"/>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource Card}" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="MESSAGE EDITOR" Foreground="{DynamicResource SecondaryBrush}" FontSize="10" FontWeight="Bold"/>
+                        <TextBlock Text="Compose a message" Style="{StaticResource SectionTitle}" FontSize="21" Margin="0,5,0,2"/>
+                        <TextBlock Text="Start here for a new message, or select one from the list to edit it." Foreground="{DynamicResource MutedBrush}"/>
                         <TextBlock Text="To email" Style="{StaticResource FieldLabel}"/>
                         <TextBox Text="{Binding ToEmail, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="To email"/>
                         <TextBlock Text="Subject" Style="{StaticResource FieldLabel}"/>
                         <TextBox Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Message subject"/>
                         <TextBlock Text="Message" Style="{StaticResource FieldLabel}"/>
                         <TextBox Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Message body" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120"/>
-                        <TextBlock Text="Sent at (ISO 8601)" Style="{StaticResource FieldLabel}"/>
-                        <TextBox Text="{Binding SentAt, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Sent at, ISO 8601"/>
-                        <TextBlock Text="Parent message ID (optional)" Style="{StaticResource FieldLabel}"/>
-                        <TextBox Text="{Binding ParentEmailId, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Parent message ID, optional"/>
+                        <TextBlock Text="Save to folder" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox ItemsSource="{Binding Folders}" SelectedItem="{Binding EditFolder}" AutomationProperties.Name="Message folder"/>
+                        <Expander Header="Sender and delivery details" HorizontalContentAlignment="Stretch" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="From name" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding FromName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="From name"/>
+                                <TextBlock Text="From email" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding FromEmail, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="From email"/>
+                                <TextBlock Text="Sent at (ISO 8601)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding SentAt, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Sent at, ISO 8601"/>
+                                <TextBlock Text="Parent message ID (optional)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding ParentEmailId, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Parent message ID, optional"/>
+                            </StackPanel>
+                        </Expander>
                         <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
                             <Button Content="Save message" Command="{Binding SaveMessageCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0"/>
                             <Button Content="Delete" Command="{Binding DeleteMessageCommand}" AutomationProperties.Name="Delete message" Style="{StaticResource DangerButton}"/>
                         </StackPanel>
                     </StackPanel>
+                    </Border>
                 </Grid>
             </TabItem>
             <TabItem Header="Identity and contacts">
-                <Grid Margin="12">
+                <Grid Margin="12" Style="{StaticResource PanelEntrance}">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                     <Border Style="{StaticResource Card}" Margin="0,0,12,0" VerticalAlignment="Top">
                         <StackPanel>

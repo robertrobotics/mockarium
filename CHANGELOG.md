@@ -4,6 +4,9 @@ All notable changes to this project will be documented here.
 
 ## Unreleased
 
+- Redesign workspace switching, the appearance control, and all three studio
+  editors. Add searchable workspace selection, offline starter guides,
+  motion-aware transitions and status feedback that doesn't move the editor.
 - Keep agent toolkits collapsed by default and add direct Calendar setup access beside the week view.
 - Show searchable, expandable tool catalogs in all studios with real MCP descriptions, inputs, and copyable JSON schemas, including while servers are stopped.
 - Replace the Electron client with a .NET 11 solution: WPF on Windows,

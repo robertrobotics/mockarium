@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Threading;
 using Mockarium.ViewModels;
 
 namespace Mockarium.Wpf;
@@ -24,6 +25,12 @@ public partial class MainWindow : Window
     {
         if (e.PropertyName == nameof(DesktopViewModel.IsNightMode))
             ((App)Application.Current).ApplyAppearance(_viewModel!.IsNightMode);
+        else if (e.PropertyName == nameof(DesktopViewModel.WorkspacePickerOpen))
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (_viewModel!.WorkspacePickerOpen) WorkspaceFilter.Focus();
+                else if (_viewModel.HasWorkspace) WorkspaceSwitcher.Focus();
+            }, DispatcherPriority.Loaded);
     }
 
     protected override void OnClosed(EventArgs e)

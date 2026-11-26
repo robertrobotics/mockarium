@@ -4,20 +4,19 @@
              xmlns:views="clr-namespace:Mockarium.Wpf.Views">
     <StackPanel>
         <views:StudioHeader/>
-        <TabControl IsEnabled="{Binding IsConfigured}">
+        <TabControl Visibility="{Binding IsConfigured, Converter={StaticResource BoolVisibility}}">
             <TabItem Header="Records">
-                <Grid Margin="12">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition Width="240"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <StackPanel Margin="0,0,12,0">
-                        <TextBlock Text="Tables" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"/>
-                        <ListBox ItemsSource="{Binding Tables}" SelectedItem="{Binding SelectedTable}" AutomationProperties.Name="Record tables" DisplayMemberPath="Label" MinHeight="230"/>
-                        <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,10,0,0"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                        <DockPanel Margin="0,0,0,10">
-                            <Button DockPanel.Dock="Right" Content="New" Command="{Binding NewRecordCommand}" AutomationProperties.Name="New record" Padding="8,4"/>
-                            <TextBlock Text="Records" Style="{StaticResource SectionTitle}"/>
+                <Grid Margin="0,10" Style="{StaticResource PanelEntrance}">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1.4*"/></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource Card}" Margin="0,0,12,0" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="DATA BROWSER" Foreground="{DynamicResource AccentBrush}" FontSize="10" FontWeight="Bold"/>
+                        <DockPanel Margin="0,5,0,10">
+                            <Button DockPanel.Dock="Right" Content="+ New" Command="{Binding NewRecordCommand}" AutomationProperties.Name="New record" Padding="8,4"/>
+                            <TextBlock Text="Records" Style="{StaticResource SectionTitle}" FontSize="21"/>
                         </DockPanel>
+                        <TextBlock Text="Browse table" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox ItemsSource="{Binding Tables}" SelectedItem="{Binding SelectedTable}" AutomationProperties.Name="Record tables" DisplayMemberPath="Label" Margin="0,0,0,8"/>
                         <ListBox ItemsSource="{Binding Records}" SelectedItem="{Binding SelectedRecord}" AutomationProperties.Name="Records" MinHeight="300" MaxHeight="520">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
@@ -28,10 +27,14 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
+                        <Button Content="Refresh records" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" Margin="0,10,0,0"/>
                     </StackPanel>
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="Record details" Style="{StaticResource SectionTitle}"/>
-                        <TextBlock Text="Relationship values are record IDs from the target table." Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,8"/>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource Card}" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="RECORD EDITOR" Foreground="{DynamicResource AccentBrush}" FontSize="10" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding SelectedTable.Label, StringFormat='Record in {0}'}" Style="{StaticResource SectionTitle}" FontSize="21" Margin="0,5"/>
+                        <TextBlock Text="Choose a row to edit it, or use New for a blank record. For relationships, enter the ID shown under the target record." Foreground="{DynamicResource MutedBrush}" Margin="0,0,0,8"/>
                         <ItemsControl ItemsSource="{Binding RecordFields}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -50,11 +53,12 @@
                             <Button Content="Delete" Command="{Binding DeleteRecordCommand}" AutomationProperties.Name="Delete record" Style="{StaticResource DangerButton}"/>
                         </StackPanel>
                     </StackPanel>
+                    </Border>
                 </Grid>
             </TabItem>
             <TabItem Header="Model designer">
-                <Grid Margin="12">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Grid Margin="12" Style="{StaticResource PanelEntrance}">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="1.35*"/></Grid.ColumnDefinitions>
                     <StackPanel Margin="0,0,12,0">
                         <TextBlock Text="Tables" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"/>
                         <ListBox ItemsSource="{Binding Tables}" SelectedItem="{Binding SelectedTable}" AutomationProperties.Name="Model tables" DisplayMemberPath="Label" MinHeight="220"/>
@@ -77,6 +81,7 @@
                     </StackPanel>
                     <StackPanel Grid.Column="2">
                         <TextBlock Text="Field details" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Text="The label appears in the editor. The name is the key your agent uses." Foreground="{DynamicResource MutedBrush}" Margin="0,5,0,0"/>
                         <TextBlock Text="Label" Style="{StaticResource FieldLabel}"/>
                         <TextBox Text="{Binding SelectedField.Label, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Field label"/>
                         <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>

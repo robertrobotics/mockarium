@@ -28,6 +28,9 @@ public sealed partial class DatabaseStudioViewModel : StudioViewModel
             "Shape relational data your agent can explore and change.", "▦") { }
 
     public ObservableCollection<TableEditorViewModel> Tables { get; } = [];
+    public override StarterGuide Starter { get; } = new("Explore a connected dataset",
+        "Start with linked tables and sample records. You can edit both the rows and the model.",
+        "Choose a table and open a record. Use Model designer when you want to change its fields.");
     public ObservableCollection<DatabaseRecord> Records { get; } = [];
     public ObservableCollection<RecordFieldViewModel> RecordFields { get; } = [];
     public IReadOnlyList<string> FieldTypes { get; } = ["text", "email", "number", "boolean", "date", "relation"];
