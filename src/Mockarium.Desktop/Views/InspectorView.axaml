@@ -1,0 +1,51 @@
+<UserControl x:Class="Mockarium.Desktop.Views.InspectorView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mockarium.ViewModels"
+             xmlns:core="using:Mockarium.Core"
+             x:DataType="vm:InspectorViewModel">
+    <StackPanel>
+        <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="{Binding PauseText}" Command="{Binding TogglePauseCommand}" Margin="0,0,8,0"/>
+                <Button Content="Clear view" Command="{Binding ClearViewCommand}" Margin="0,0,8,0"/>
+                <Button Content="Export JSON" Command="{Binding ExportCommand}" Margin="0,0,8,0"/>
+                <Button Content="Export JSONL" Command="{Binding ExportJsonLinesCommand}" Classes="primary"/>
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="Live Inspector" FontSize="27" FontWeight="Bold"/>
+                <TextBlock Text="Actual tool calls, inputs, and results from your connected agents." Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
+            </StackPanel>
+        </DockPanel>
+        <Grid Margin="0,22,0,12" ColumnDefinitions="*,160">
+            <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Search tool calls" AutomationProperties.Name="Search tool calls" Margin="0,0,10,0"/>
+            <ComboBox Grid.Column="1" ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding StatusFilter}" AutomationProperties.Name="Filter by status"/>
+        </Grid>
+        <Grid ColumnDefinitions="340,*">
+            <ListBox ItemsSource="{Binding Events}" SelectedItem="{Binding SelectedEvent}" AutomationProperties.Name="Tool calls" MinHeight="500" Margin="0,0,12,0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="core:ExecutionEvent">
+                        <StackPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Status}" Foreground="#397A5D" FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding ToolName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                            </DockPanel>
+                            <TextBlock Text="{Binding ServerName}" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding CreatedAt}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <Border Grid.Column="1" Classes="card" VerticalAlignment="Top">
+                <StackPanel>
+                    <TextBlock Text="Execution details" Classes="section-title"/>
+                    <TextBlock Text="Select a call to inspect the actual input and output." Foreground="{StaticResource MutedBrush}" Margin="0,5,0,4"/>
+                    <TextBlock Text="INPUT" Classes="field-label"/>
+                    <TextBox Text="{Binding InputJson}" AutomationProperties.Name="Tool call input" FontFamily="monospace" FontSize="12" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="140"/>
+                    <TextBlock Text="OUTPUT" Classes="field-label"/>
+                    <TextBox Text="{Binding OutputJson}" AutomationProperties.Name="Tool call output" FontFamily="monospace" FontSize="12" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="180"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </StackPanel>
+</UserControl>

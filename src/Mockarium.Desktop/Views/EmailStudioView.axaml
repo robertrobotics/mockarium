@@ -1,0 +1,104 @@
+<UserControl x:Class="Mockarium.Desktop.Views.EmailStudioView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="using:Mockarium.Desktop.Views"
+             xmlns:vm="using:Mockarium.ViewModels"
+             xmlns:core="using:Mockarium.Core"
+             x:DataType="vm:EmailStudioViewModel">
+    <StackPanel>
+        <views:StudioHeader/>
+        <TabControl IsEnabled="{Binding IsConfigured}">
+            <TabItem Header="Mailbox">
+                <Grid Margin="12" ColumnDefinitions="170,250,*">
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock Text="Folders" Classes="section-title" Margin="0,0,0,10"/>
+                        <ListBox ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedFolder}" AutomationProperties.Name="Mailbox folders" MinHeight="190" MaxHeight="300"/>
+                        <TextBox Text="{Binding NewFolderName, UpdateSourceTrigger=PropertyChanged}" Margin="0,10,0,5"
+                                 PlaceholderText="New folder name" AutomationProperties.Name="New folder name"/>
+                        <Button Content="Add folder" Command="{Binding AddFolderCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,5"/>
+                        <Button Content="Delete folder" Command="{Binding DeleteFolderCommand}" Classes="danger" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        <DockPanel Margin="0,0,0,10">
+                            <Button DockPanel.Dock="Right" Content="New" Command="{Binding NewMessageCommand}" AutomationProperties.Name="New message" Padding="8,4"/>
+                            <TextBlock Text="Messages" Classes="section-title" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <TextBox Text="{Binding MessageSearch, UpdateSourceTrigger=PropertyChanged}" MaxLength="250" Margin="0,0,0,6"
+                                 PlaceholderText="Search this folder" AutomationProperties.Name="Search this folder"/>
+                        <ListBox ItemsSource="{Binding Messages}" SelectedItem="{Binding SelectedMessage}" AutomationProperties.Name="Messages" MinHeight="235" MaxHeight="520">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="core:EmailMessage">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Subject}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                        <TextBlock Text="{Binding FromName}" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,3,0,0"/>
+                                        <TextBlock Text="{Binding SentAt}" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <Button Content="Refresh mailbox" Command="{Binding RefreshCommand}" HorizontalAlignment="Stretch" Margin="0,10,0,0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Message details" Classes="section-title"/>
+                        <TextBlock Text="Folder" Classes="field-label"/>
+                        <ComboBox x:Name="MessageFolderSelector" ItemsSource="{Binding Folders}" SelectedItem="{Binding EditFolder}" AutomationProperties.Name="Message folder"/>
+                        <TextBlock Text="From name" Classes="field-label"/>
+                        <TextBox Text="{Binding FromName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="From name"/>
+                        <TextBlock Text="From email" Classes="field-label"/>
+                        <TextBox Text="{Binding FromEmail, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="From email"/>
+                        <TextBlock Text="To email" Classes="field-label"/>
+                        <TextBox Text="{Binding ToEmail, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="To email"/>
+                        <TextBlock Text="Subject" Classes="field-label"/>
+                        <TextBox x:Name="MessageSubjectInput" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Message subject"/>
+                        <TextBlock Text="Message" Classes="field-label"/>
+                        <TextBox Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Message body" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120"/>
+                        <TextBlock Text="Sent at (ISO 8601)" Classes="field-label"/>
+                        <TextBox Text="{Binding SentAt, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Sent at, ISO 8601"/>
+                        <TextBlock Text="Parent message ID (optional)" Classes="field-label"/>
+                        <TextBox Text="{Binding ParentEmailId, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Parent message ID, optional"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <Button Content="Save message" Command="{Binding SaveMessageCommand}" Classes="primary" Margin="0,0,8,0"/>
+                            <Button Content="Delete" Command="{Binding DeleteMessageCommand}" AutomationProperties.Name="Delete message" Classes="danger"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Identity and contacts">
+                <Grid Margin="12" ColumnDefinitions="*,*">
+                    <Border Classes="card" Margin="0,0,12,0" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Text="Mailbox identity" Classes="section-title"/>
+                            <TextBlock Text="Used as the sender for simulated outgoing messages." Foreground="{StaticResource MutedBrush}" Margin="0,5,0,8"/>
+                            <TextBlock Text="Name" Classes="field-label"/>
+                            <TextBox Text="{Binding MailboxName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Mailbox name"/>
+                            <TextBlock Text="Email" Classes="field-label"/>
+                            <TextBox Text="{Binding MailboxEmail, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Mailbox email"/>
+                            <Button Content="Save identity" Command="{Binding SaveProfileCommand}" Classes="primary" HorizontalAlignment="Left" Margin="0,14,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Classes="card" VerticalAlignment="Top">
+                        <StackPanel>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="New" Command="{Binding NewContactCommand}" AutomationProperties.Name="New contact" Padding="8,4"/>
+                                <TextBlock Text="Contacts" Classes="section-title"/>
+                            </DockPanel>
+                            <ListBox ItemsSource="{Binding Contacts}" SelectedItem="{Binding SelectedContact}" AutomationProperties.Name="Contacts" Height="140" Margin="0,10,0,0">
+                                <ListBox.ItemTemplate><DataTemplate x:DataType="core:EmailContact"><TextBlock Text="{Binding Name}"/></DataTemplate></ListBox.ItemTemplate>
+                            </ListBox>
+                            <TextBlock Text="Name" Classes="field-label"/>
+                            <TextBox Text="{Binding ContactName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Contact name"/>
+                            <TextBlock Text="Email" Classes="field-label"/>
+                            <TextBox Text="{Binding ContactEmail, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Contact email"/>
+                            <TextBlock Text="Company" Classes="field-label"/>
+                            <TextBox Text="{Binding ContactCompany, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Contact company"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button Content="Save contact" Command="{Binding SaveContactCommand}" Classes="primary" Margin="0,0,8,0"/>
+                                <Button Content="Delete" Command="{Binding DeleteContactCommand}" AutomationProperties.Name="Delete contact" Classes="danger"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </StackPanel>
+</UserControl>

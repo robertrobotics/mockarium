@@ -6,19 +6,47 @@ on:
   pull_request:
 
 jobs:
-  verify:
+  verify-dotnet:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-dotnet@v4
         with:
-          version: 12.18.0
-      - uses: actions/setup-node@v4
+          dotnet-version: 11.0.x
+      - run: dotnet restore Mockarium.slnx
+      - run: dotnet build Mockarium.slnx --configuration Release --no-restore
+      - run: dotnet test Mockarium.slnx --configuration Release --no-build
+
+  verify-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
         with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - run: pnpm test
-      - run: pnpm build
+          dotnet-version: 11.0.x
+      - run: dotnet build Mockarium.slnx --configuration Release
+      - run: dotnet test Mockarium.slnx --configuration Release --no-build
+
+  verify-macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - run: dotnet build Mockarium.slnx --configuration Release
+      - run: dotnet test Mockarium.slnx --configuration Release --no-build
+      - name: Verify macOS release bundle
+        shell: bash
+        run: |
+          dotnet publish src/Mockarium.Desktop/Mockarium.Desktop.csproj --configuration Release --runtime osx-arm64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None --output "$RUNNER_TEMP/publish"
+          version="$(dotnet msbuild src/Mockarium.Desktop/Mockarium.Desktop.csproj -getProperty:Version)"
+          bash .github/scripts/package-macos.sh "$RUNNER_TEMP/publish" "$RUNNER_TEMP/package" "$RUNNER_TEMP" "$version"
+          tar -czf "$RUNNER_TEMP/Mockarium.tar.gz" -C "$RUNNER_TEMP/package" Mockarium.app
+          mkdir "$RUNNER_TEMP/extracted"
+          tar -xzf "$RUNNER_TEMP/Mockarium.tar.gz" -C "$RUNNER_TEMP/extracted"
+          plutil -lint "$RUNNER_TEMP/extracted/Mockarium.app/Contents/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$RUNNER_TEMP/extracted/Mockarium.app/Contents/Info.plist")" = "$version"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$RUNNER_TEMP/extracted/Mockarium.app/Contents/Info.plist")" = "$version"
+          test -x "$RUNNER_TEMP/extracted/Mockarium.app/Contents/MacOS/Mockarium.Desktop"
+          test -s "$RUNNER_TEMP/extracted/Mockarium.app/Contents/Resources/Mockarium.icns"

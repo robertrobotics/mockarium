@@ -1,0 +1,148 @@
+<Application x:Class="Mockarium.Desktop.App"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mockarium.ViewModels"
+             xmlns:views="using:Mockarium.Desktop.Views"
+             RequestedThemeVariant="Light">
+    <Application.Resources>
+        <SolidColorBrush x:Key="CanvasBrush" Color="#F5F6FA"/>
+        <SolidColorBrush x:Key="InkBrush" Color="#172230"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#667486"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#DFE4ED"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#6258D3"/>
+        <SolidColorBrush x:Key="AccentSoftBrush" Color="#F0EEFF"/>
+        <SolidColorBrush x:Key="SidebarBrush" Color="#111A29"/>
+    </Application.Resources>
+    <Application.DataTemplates>
+        <DataTemplate DataType="{x:Type vm:OverviewViewModel}"><ScrollViewer><views:OverviewView Classes="page"/></ScrollViewer></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:EmailStudioViewModel}"><ScrollViewer><views:EmailStudioView Classes="page"/></ScrollViewer></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DatabaseStudioViewModel}"><ScrollViewer><views:DatabaseStudioView Classes="page"/></ScrollViewer></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CalendarStudioViewModel}"><ScrollViewer><views:CalendarStudioView Classes="page"/></ScrollViewer></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:InspectorViewModel}"><ScrollViewer><views:InspectorView Classes="page"/></ScrollViewer></DataTemplate>
+    </Application.DataTemplates>
+    <Application.Styles>
+        <FluentTheme/>
+        <Style Selector=":is(UserControl).page">
+            <Setter Property="Margin" Value="30,24,30,32"/>
+        </Style>
+        <Style Selector=":is(Window):not(.reduced-motion) :is(UserControl).page">
+            <Style.Animations>
+                <Animation Duration="0:0:0.16">
+                    <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0.75"/></KeyFrame>
+                    <KeyFrame Cue="100%"><Setter Property="Opacity" Value="1"/></KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        <Style Selector=":is(Window)">
+            <Setter Property="FontFamily" Value="avares://Avalonia.Fonts.Inter/Assets#Inter"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="Background" Value="{StaticResource CanvasBrush}"/>
+        </Style>
+        <Style Selector="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="13,8"/>
+            <Setter Property="CornerRadius" Value="7"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Transitions">
+                <Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.16"/></Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button:pointerover"><Setter Property="Opacity" Value="0.86"/></Style>
+        <Style Selector="Button:pressed"><Setter Property="Opacity" Value="0.72"/></Style>
+        <Style Selector=":is(Window).reduced-motion Button"><Setter Property="Transitions" Value="{x:Null}"/></Style>
+        <Style Selector="Button.primary">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+        </Style>
+        <Style Selector="Button.nav">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Foreground" Value="#D6DCE8"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="14,11"/>
+            <Setter Property="Margin" Value="0,2"/>
+        </Style>
+        <Style Selector="Button.nav:pointerover"><Setter Property="Background" Value="#28364F"/></Style>
+        <Style Selector="Button.nav:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#9BA6BB"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+        <Style Selector="Button.nav.active">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#343B60"/>
+            <Setter Property="BorderBrush" Value="#54577E"/>
+        </Style>
+        <Style Selector="Button.danger"><Setter Property="Foreground" Value="#A43242"/></Style>
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Padding" Value="9,7"/>
+            <Setter Property="MinHeight" Value="34"/>
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="3"/>
+        </Style>
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        </Style>
+        <Style Selector="TabItem">
+            <Setter Property="Padding" Value="16,9"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="20"/>
+        </Style>
+        <Style Selector="Border.studio-card">
+            <Setter Property="BoxShadow" Value="0 4 14 0 #0A1A2540"/>
+            <Setter Property="Transitions">
+                <Transitions><BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.18"/></Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.studio-icon"><Setter Property="Background" Value="#EEECFF"/></Style>
+        <Style Selector="Border.studio-icon TextBlock"><Setter Property="Foreground" Value="#584DBD"/></Style>
+        <Style Selector="Border.studio-icon[Tag=database]"><Setter Property="Background" Value="#DFF4EF"/></Style>
+        <Style Selector="Border.studio-icon[Tag=database] TextBlock"><Setter Property="Foreground" Value="#22695F"/></Style>
+        <Style Selector="Border.studio-icon[Tag=calendar]"><Setter Property="Background" Value="#FCEAD9"/></Style>
+        <Style Selector="Border.studio-icon[Tag=calendar] TextBlock"><Setter Property="Foreground" Value="#914820"/></Style>
+        <Style Selector="Border.status-badge"><Setter Property="Background" Value="#EEF0F5"/></Style>
+        <Style Selector="Border.status-badge TextBlock"><Setter Property="Foreground" Value="#49566C"/></Style>
+        <Style Selector="Border.status-badge.live"><Setter Property="Background" Value="#E1F5EA"/></Style>
+        <Style Selector="Border.status-badge.live TextBlock"><Setter Property="Foreground" Value="#276447"/></Style>
+        <Style Selector="Border.studio-card:pointerover"><Setter Property="BoxShadow" Value="0 8 24 0 #1C25366B"/></Style>
+        <Style Selector=":is(Window).reduced-motion Border.studio-card"><Setter Property="Transitions" Value="{x:Null}"/></Style>
+        <Style Selector="TextBlock.field-label">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#48576A"/>
+            <Setter Property="Margin" Value="0,10,0,5"/>
+        </Style>
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+        </Style>
+    </Application.Styles>
+</Application>

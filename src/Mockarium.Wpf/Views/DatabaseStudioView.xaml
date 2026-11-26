@@ -1,0 +1,97 @@
+<UserControl x:Class="Mockarium.Wpf.Views.DatabaseStudioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:Mockarium.Wpf.Views">
+    <StackPanel>
+        <views:StudioHeader/>
+        <TabControl IsEnabled="{Binding IsConfigured}">
+            <TabItem Header="Records">
+                <Grid Margin="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition Width="240"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock Text="Tables" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"/>
+                        <ListBox ItemsSource="{Binding Tables}" SelectedItem="{Binding SelectedTable}" AutomationProperties.Name="Record tables" DisplayMemberPath="Label" MinHeight="230"/>
+                        <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,10,0,0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        <DockPanel Margin="0,0,0,10">
+                            <Button DockPanel.Dock="Right" Content="New" Command="{Binding NewRecordCommand}" AutomationProperties.Name="New record" Padding="8,4"/>
+                            <TextBlock Text="Records" Style="{StaticResource SectionTitle}"/>
+                        </DockPanel>
+                        <ListBox ItemsSource="{Binding Records}" SelectedItem="{Binding SelectedRecord}" AutomationProperties.Name="Records" MinHeight="300" MaxHeight="520">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Summary}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Id}" FontSize="10" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Record details" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Text="Relationship values are record IDs from the target table." Foreground="{StaticResource MutedBrush}" Margin="0,5,0,8"/>
+                        <ItemsControl ItemsSource="{Binding RecordFields}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Hint}" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,10,0,0"/>
+                                            <TextBlock Text="{Binding Label}" Style="{StaticResource FieldLabel}"/>
+                                        </DockPanel>
+                                        <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding Label}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <Button Content="Save record" Command="{Binding SaveRecordCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0"/>
+                            <Button Content="Delete" Command="{Binding DeleteRecordCommand}" AutomationProperties.Name="Delete record" Style="{StaticResource DangerButton}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Model designer">
+                <Grid Margin="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="200"/><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock Text="Tables" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"/>
+                        <ListBox ItemsSource="{Binding Tables}" SelectedItem="{Binding SelectedTable}" AutomationProperties.Name="Model tables" DisplayMemberPath="Label" MinHeight="220"/>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <Button Content="Add table" Command="{Binding AddTableCommand}" Margin="0,0,4,0"/>
+                            <Button Content="Remove" Command="{Binding RemoveTableCommand}" AutomationProperties.Name="Remove table" Style="{StaticResource DangerButton}"/>
+                        </UniformGrid>
+                        <TextBlock Text="Table label" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Text="{Binding SelectedTable.Label, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Table label"/>
+                        <TextBlock Text="Table name" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Text="{Binding SelectedTable.Name, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Table name"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        <TextBlock Text="Fields" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"/>
+                        <ListBox ItemsSource="{Binding SelectedTable.Fields}" SelectedItem="{Binding SelectedField}" AutomationProperties.Name="Table fields" DisplayMemberPath="Label" MinHeight="220"/>
+                        <UniformGrid Columns="2" Margin="0,8,0,0">
+                            <Button Content="Add field" Command="{Binding AddFieldCommand}" Margin="0,0,4,0"/>
+                            <Button Content="Remove" Command="{Binding RemoveFieldCommand}" AutomationProperties.Name="Remove field" Style="{StaticResource DangerButton}"/>
+                        </UniformGrid>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Field details" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Text="Label" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Text="{Binding SelectedField.Label, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Field label"/>
+                        <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Text="{Binding SelectedField.Name, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Field name"/>
+                        <TextBlock Text="Type" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox ItemsSource="{Binding FieldTypes}" SelectedItem="{Binding SelectedField.Type}" AutomationProperties.Name="Field type"/>
+                        <TextBlock Text="Relationship target table name" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Text="{Binding SelectedField.RelationTo, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Relationship target table name"/>
+                        <CheckBox Content="Required" IsChecked="{Binding SelectedField.Required}" Margin="0,12,0,0"/>
+                        <Button Content="Save model changes" Command="{Binding SaveModelCommand}" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Margin="0,18,0,0"/>
+                        <TextBlock Text="Save model changes before starting or stopping the server." Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </StackPanel>
+</UserControl>

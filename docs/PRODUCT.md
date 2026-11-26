@@ -1,23 +1,38 @@
 # Mockarium
 
-Mockarium is a local-first desktop application for testing AI agents against simulated MCP servers. Developers define safe mock systems, connect an existing MCP-compatible client, and inspect its actual tool interactions.
+Mockarium is a local-first desktop application for testing external AI agents
+against simulated MCP services. Developers shape realistic mock data, connect
+an MCP-compatible client, and inspect its actual tool interactions; Mockarium
+does not build or host an AI agent.
 
-## First release
+## Desktop direction
 
-The first release provides workspaces, a customizable Email mock, a visual Database Studio with an editable relational model, a Calendar Studio with a drag-and-drop week planner, and a real-time execution inspector. Email Studio configures the mailbox identity, messages, folders, and contacts that an agent can discover and use. All MCP servers start only on loopback and never connect to production services. The Database Studio uses safe, validated record operations instead of exposing SQL. The app is intended for manual testing with external MCP clients; it does not build or host an AI agent.
+The application targets .NET 11 only, with WPF on Windows and Avalonia on
+macOS/Linux. Shared MVVM and domain layers keep behavior consistent across the
+two desktop clients.
 
 ## Product principles
 
-- Local data and configuration; no account or telemetry.
-- Mock operations stay isolated from production services.
-- Visible, observable tool calls rather than hidden model reasoning.
+- Local data and configuration; no accounts or telemetry.
+- Mock operations remain isolated from real business services.
+- Visible tool calls rather than hidden model reasoning.
 - GUI-first workflows, with clear connection details and errors.
 - Reproducible mock state and deterministic behavior.
+- Preserve existing workspaces across application upgrades.
 
-## Initial users and workflow
+## Core workflow
 
-People using MCP-based agents can create a workspace, shape sample business data in Database Studio, customize an email mailbox in Email Studio, plan a realistic week in Calendar Studio, connect an agent to the local MCP endpoint, inspect the real request and response, and restore starter mock data.
+Create a workspace, configure the Email, Database, or Calendar mock, connect an
+external MCP client to the loopback endpoint, inspect the real request and
+response, and restore starter mock data when needed.
 
-## Roadmap boundaries
+## Scope and status
 
-File Storage, a custom mock-server builder, and scenario testing remain future milestones.
+Email, Database, Calendar, and Live Inspector are implemented in the .NET
+clients. Cross-platform packaging and packaged user-data path parity still
+require verification. MCP Inspector discovered all three tool catalogs and
+called one tool per studio without schema portability warnings. A direct
+TypeScript SDK probe discovered and called all 22 tools.
+
+Future work may include File Storage, a custom mock-server builder, and
+scenario automation; those features are not part of the current release.

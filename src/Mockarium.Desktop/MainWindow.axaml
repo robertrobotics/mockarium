@@ -1,0 +1,82 @@
+<Window x:Class="Mockarium.Desktop.MainWindow"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Mockarium.ViewModels"
+        xmlns:core="using:Mockarium.Core"
+        x:DataType="vm:DesktopViewModel"
+        Classes.reduced-motion="{Binding ReduceMotion}"
+        Title="Mockarium" Width="1440" Height="920" MinWidth="1050" MinHeight="700"
+        WindowStartupLocation="CenterScreen">
+    <Grid ColumnDefinitions="240,*">
+        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" Padding="18,24,18,18">
+            <Grid RowDefinitions="Auto,Auto,*,Auto">
+                <StackPanel Orientation="Horizontal" Margin="2,0,0,25">
+                    <Border Background="#7065E6" CornerRadius="9" Width="34" Height="34">
+                        <TextBlock Text="M" Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Margin="10,0,0,0">
+                        <TextBlock Text="mockarium" Foreground="White" FontSize="17" FontWeight="Bold"/>
+                        <TextBlock Text="AGENT TEST BENCH" Foreground="#A1AEBF" FontSize="9" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Row="1" IsVisible="{Binding HasWorkspace}">
+                    <TextBlock Text="WORKSPACE" Foreground="#9DABBE" FontSize="10" FontWeight="Bold" Margin="4,0,0,8"/>
+                    <ComboBox ItemsSource="{Binding Workspaces}" SelectedItem="{Binding SelectedWorkspace}"
+                              ToolTip.Tip="Select a workspace" AutomationProperties.Name="Active workspace">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="core:Workspace"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBox MaxLength="80" Text="{Binding WorkspaceName, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0"
+                             PlaceholderText="Workspace name" AutomationProperties.Name="Workspace name"/>
+                    <UniformGrid Columns="3" Margin="0,6,0,0">
+                        <Button Content="New" AutomationProperties.Name="New workspace" Command="{Binding CreateWorkspaceCommand}" Padding="4,6" Margin="0,0,3,0"/>
+                        <Button Content="Rename" AutomationProperties.Name="Rename workspace" Command="{Binding RenameWorkspaceCommand}" Padding="4,6" Margin="2,0"/>
+                        <Button Content="Delete" AutomationProperties.Name="Delete workspace" Command="{Binding DeleteWorkspaceCommand}" Padding="4,6" Margin="3,0,0,0"/>
+                    </UniformGrid>
+                    <Border Height="1" Background="#2A3548" Margin="0,20,0,14"/>
+                </StackPanel>
+                <StackPanel Grid.Row="2">
+                    <TextBlock Text="EXPLORE" Foreground="#9DABBE" FontSize="10" FontWeight="Bold" Margin="4,0,0,8"/>
+                    <Button Classes="nav" Classes.active="{Binding IsOverview}" Content="◈    Overview" Command="{Binding NavigateCommand}" CommandParameter="overview"/>
+                    <Button x:Name="EmailNavigationButton" Classes="nav" Classes.active="{Binding IsEmail}" IsEnabled="{Binding HasWorkspace}" Content="✉    Email Studio" Command="{Binding NavigateCommand}" CommandParameter="email"/>
+                    <Button Classes="nav" Classes.active="{Binding IsDatabase}" IsEnabled="{Binding HasWorkspace}" Content="▦    Database Studio" Command="{Binding NavigateCommand}" CommandParameter="database"/>
+                    <Button x:Name="CalendarNavigationButton" Classes="nav" Classes.active="{Binding IsCalendar}" IsEnabled="{Binding HasWorkspace}" Content="◷    Calendar Studio" Command="{Binding NavigateCommand}" CommandParameter="calendar"/>
+                    <Button Classes="nav" Classes.active="{Binding IsInspector}" IsEnabled="{Binding HasWorkspace}" Content="⌁    Live Inspector" Command="{Binding NavigateCommand}" CommandParameter="inspector"/>
+                </StackPanel>
+                <Border Grid.Row="3" Background="#1B283B" CornerRadius="9" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="●  LOCAL MODE" Foreground="#80D8AF" FontWeight="Bold" FontSize="10"/>
+                        <TextBlock Text="Your mock data stays on this device." Foreground="#B4C0D0" FontSize="11" Margin="0,5,0,0"/>
+                        <CheckBox Content="Reduce motion" IsChecked="{Binding ReduceMotion}" Foreground="#D6DCE8" FontSize="11" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+        <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+            <Border Background="White" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="30,17">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="●  LOCAL-FIRST" Foreground="#2E8462" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Mockarium" Foreground="{StaticResource MutedBrush}"/>
+                        <TextBlock Text="  /  " Foreground="#B3BCC9"/>
+                        <TextBlock Text="{Binding CurrentPageTitle}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+            <StackPanel Grid.Row="1" Margin="30,10,30,0">
+                <Border Background="#FFF0F0" BorderBrush="#F0CACA" BorderThickness="1" CornerRadius="8" Padding="12" IsVisible="{Binding HasError}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissErrorCommand}" Padding="8,4"/>
+                        <TextBlock Text="{Binding Error}" Foreground="#8E2938" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </Border>
+                <Border Background="#EAF8F1" BorderBrush="#BFE7D2" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,4,0,0" IsVisible="{Binding HasNotice}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Dismiss" Command="{Binding DismissNoticeCommand}" Padding="8,4"/>
+                        <TextBlock Text="{Binding Notice}" Foreground="#216449" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </Border>
+            </StackPanel>
+            <ContentControl Grid.Row="2" Content="{Binding CurrentPage}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+        </Grid>
+    </Grid>
+</Window>

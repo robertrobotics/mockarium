@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless" Version="12.2.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Mockarium.Core/Mockarium.Core.csproj" />
+    <ProjectReference Include="../../src/Mockarium.ViewModels/Mockarium.ViewModels.csproj" />
+    <ProjectReference Include="../../src/Mockarium.Desktop/Mockarium.Desktop.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Fixtures/legacy-electron.sqlite.fixture" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

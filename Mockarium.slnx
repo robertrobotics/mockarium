@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Mockarium.Core/Mockarium.Core.csproj" />
+    <Project Path="src/Mockarium.Desktop/Mockarium.Desktop.csproj" />
+    <Project Path="src/Mockarium.ViewModels/Mockarium.ViewModels.csproj" />
+    <Project Path="src/Mockarium.Wpf/Mockarium.Wpf.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Mockarium.Tests/Mockarium.Tests.csproj" />
+  </Folder>
+</Solution>

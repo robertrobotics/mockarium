@@ -1,0 +1,91 @@
+name: .NET release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.artifact }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact: mockarium-windows-x64
+            os: windows-latest
+            project: src/Mockarium.Wpf/Mockarium.Wpf.csproj
+            runtime: win-x64
+            archive: mockarium-windows-x64.zip
+          - artifact: mockarium-macos-arm64
+            os: macos-15
+            project: src/Mockarium.Desktop/Mockarium.Desktop.csproj
+            runtime: osx-arm64
+            archive: mockarium-macos-arm64.tar.gz
+          - artifact: mockarium-macos-x64
+            os: macos-15-intel
+            project: src/Mockarium.Desktop/Mockarium.Desktop.csproj
+            runtime: osx-x64
+            archive: mockarium-macos-x64.tar.gz
+          - artifact: mockarium-linux-x64
+            os: ubuntu-latest
+            project: src/Mockarium.Desktop/Mockarium.Desktop.csproj
+            runtime: linux-x64
+            archive: mockarium-linux-x64.tar.gz
+          - artifact: mockarium-linux-arm64
+            os: ubuntu-24.04-arm
+            project: src/Mockarium.Desktop/Mockarium.Desktop.csproj
+            runtime: linux-arm64
+            archive: mockarium-linux-arm64.tar.gz
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Publish self-contained application
+        run: dotnet publish "${{ matrix.project }}" --configuration Release --runtime "${{ matrix.runtime }}" --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None --output publish
+        shell: bash
+      - name: Archive Windows application
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path publish\* -DestinationPath "${{ matrix.archive }}"
+        shell: pwsh
+      - name: Create macOS application bundle
+        if: runner.os == 'macOS'
+        run: |
+          version="$(dotnet msbuild "${{ matrix.project }}" -getProperty:Version)"
+          bash .github/scripts/package-macos.sh publish package "$RUNNER_TEMP" "$version"
+        shell: bash
+      - name: Archive macOS application
+        if: runner.os == 'macOS'
+        run: tar -czf "${{ matrix.archive }}" -C package Mockarium.app
+        shell: bash
+      - name: Archive Linux application
+        if: runner.os == 'Linux'
+        run: tar -czf "${{ matrix.archive }}" -C publish .
+        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.archive }}
+          if-no-files-found: error
+
+  attach-assets:
+    name: Attach release assets
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: mockarium-*
+          path: release-assets
+          merge-multiple: true
+      - name: Upload assets to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "$GITHUB_REF_NAME" release-assets/* --clobber

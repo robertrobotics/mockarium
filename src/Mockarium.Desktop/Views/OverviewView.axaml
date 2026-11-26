@@ -1,0 +1,83 @@
+<UserControl x:Class="Mockarium.Desktop.Views.OverviewView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Mockarium.ViewModels"
+             x:DataType="vm:OverviewViewModel">
+    <StackPanel>
+        <Border CornerRadius="18" Padding="30,24" Margin="0,0,0,18">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Color="#151B35" Offset="0"/>
+                    <GradientStop Color="#343263" Offset="0.64"/>
+                    <GradientStop Color="#433B82" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Grid ColumnDefinitions="*,190">
+                <StackPanel>
+                    <TextBlock Text="MOCKARIUM   /   SIMULATION LAB" Foreground="#BBB7FF" FontSize="11" FontWeight="Bold"/>
+                    <TextBlock Text="Build the world.&#x0a;Test the agent." Foreground="White" FontSize="34" FontWeight="Bold" Margin="0,10,0,8"/>
+                    <TextBlock Text="Give your agent a mailbox, a database, and a week to plan. Inspect every call without touching a real service."
+                               Foreground="#D9DCEC" FontSize="14" MaxWidth="520" HorizontalAlignment="Left"/>
+                </StackPanel>
+                <Canvas Grid.Column="1" Width="180" Height="150" VerticalAlignment="Center" IsHitTestVisible="False">
+                    <Path Data="M8,94 L90,51 172,94 90,139 Z" Fill="#403D72" Stroke="#8A84C9" StrokeThickness="1"/>
+                    <Path Data="M8,71 L90,28 172,71 90,116 Z" Fill="#57508C" Stroke="#AAA2FA" StrokeThickness="1"/>
+                    <Path Data="M8,48 L90,5 172,48 90,93 Z" Fill="#766DB8" Stroke="#D7D1FF" StrokeThickness="2"/>
+                    <Path Data="M35,48 L90,19 145,48 90,78 Z M63,34 L117,63 M63,63 L117,34" Stroke="#AFA6E8" StrokeThickness="1"/>
+                    <Path Data="M90,94 V138 M8,72 V95 M172,72 V95" Stroke="#AEA7EB" StrokeThickness="1" StrokeDashArray="2,3"/>
+                    <Ellipse Canvas.Left="85" Canvas.Top="43" Width="10" Height="10" Fill="#ADF0D9"/>
+                </Canvas>
+            </Grid>
+        </Border>
+        <Border x:Name="OnboardingPanel" Classes="card" Background="#F0EEFF" BorderBrush="#D7D3F6"
+                Margin="0,0,0,20" IsVisible="{Binding !Shell.HasWorkspace}">
+            <StackPanel>
+                <TextBlock Text="Create your first workspace" Classes="section-title"/>
+                <TextBlock Text="Each workspace keeps its mock data and call history separate." Foreground="{StaticResource MutedBrush}" Margin="0,4,0,12"/>
+                <Grid ColumnDefinitions="*,Auto" MaxWidth="540" HorizontalAlignment="Left">
+                    <TextBox x:Name="FirstWorkspaceName" MinWidth="220" MaxLength="80" PlaceholderText="Workspace name"
+                             AutomationProperties.Name="Workspace name" Text="{Binding Shell.WorkspaceName, UpdateSourceTrigger=PropertyChanged}">
+                        <TextBox.KeyBindings><KeyBinding Gesture="Enter" Command="{Binding Shell.CreateWorkspaceCommand}"/></TextBox.KeyBindings>
+                    </TextBox>
+                    <Button Grid.Column="1" x:Name="FirstWorkspaceCreate" Content="Create workspace" Classes="primary" Margin="8,0,0,0"
+                            Command="{Binding Shell.CreateWorkspaceCommand}"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+        <DockPanel Margin="0,0,0,14">
+            <TextBlock DockPanel.Dock="Right" Text="LOCAL MOCK SERVICES" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+            <TextBlock Text="Your studios" Classes="section-title"/>
+        </DockPanel>
+        <ItemsControl ItemsSource="{Binding Studios}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:StudioViewModel">
+                    <Border Classes="card studio-card" Margin="0,0,12,0">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,18">
+                                <Border Classes="status-badge" Classes.live="{Binding IsRunning}" IsVisible="{Binding HasWorkspace}" DockPanel.Dock="Right" CornerRadius="10" Padding="8,4" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                    <TextBlock Text="{Binding StatusText}" FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                                <Border Classes="studio-icon" Tag="{Binding Type}" CornerRadius="9" Width="42" Height="42" HorizontalAlignment="Left">
+                                    <TextBlock Text="{Binding Symbol}" FontSize="22" FontWeight="Bold"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </DockPanel>
+                            <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="17"/>
+                            <TextBlock Text="{Binding Description}" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,20" MinHeight="44"/>
+                            <Button Content="Open studio" AutomationProperties.Name="{Binding Title, StringFormat='Open {0}'}" Command="{Binding OpenCommand}" IsVisible="{Binding HasWorkspace}" Classes="primary" HorizontalAlignment="Stretch" Margin="0,0,0,7"/>
+                            <Button Content="{Binding ToggleText}" Command="{Binding ToggleServerCommand}" IsVisible="{Binding HasWorkspace}" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Border Classes="card" Margin="0,24,14,0" Background="#F8F9FD">
+            <StackPanel>
+                <TextBlock Text="Connect your first agent" FontWeight="Bold" FontSize="14"/>
+                <TextBlock Text="Start a studio server, copy its configuration to your MCP client, then open Live Inspector to watch the requests and results."
+                           Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

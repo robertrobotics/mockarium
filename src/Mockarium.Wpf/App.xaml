@@ -1,0 +1,200 @@
+<Application x:Class="Mockarium.Wpf.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Mockarium.ViewModels;assembly=Mockarium.ViewModels"
+             xmlns:views="clr-namespace:Mockarium.Wpf.Views"
+             xmlns:local="clr-namespace:Mockarium.Wpf">
+    <Application.Resources>
+        <SolidColorBrush x:Key="CanvasBrush" Color="#F5F6FA"/>
+        <SolidColorBrush x:Key="InkBrush" Color="#172230"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#667486"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#DFE4ED"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#6258D3"/>
+        <SolidColorBrush x:Key="AccentSoftBrush" Color="#F0EEFF"/>
+        <SolidColorBrush x:Key="SidebarBrush" Color="#111A29"/>
+        <BooleanToVisibilityConverter x:Key="BoolVisibility"/>
+        <local:InverseBooleanToVisibilityConverter x:Key="InverseBoolVisibility"/>
+
+        <Style TargetType="Window">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="Background" Value="{StaticResource CanvasBrush}"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="13,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.84"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#8F86F7"/>
+                                <Setter TargetName="Chrome" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource TemplatedParent}}" Value="True"/>
+                                    <Condition Binding="{Binding IsEnabled, RelativeSource={RelativeSource TemplatedParent}}" Value="True"/>
+                                    <Condition Binding="{Binding DataContext.ReduceMotion, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" Value="False"/>
+                                    <Condition Binding="{Binding Source={x:Static SystemParameters.ClientAreaAnimation}}" Value="True"/>
+                                </MultiDataTrigger.Conditions>
+                                <MultiDataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Chrome" Storyboard.TargetProperty="Opacity"
+                                                             To="0.84" Duration="0:0:0.16" FillBehavior="Stop"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </MultiDataTrigger.EnterActions>
+                                <MultiDataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Chrome" Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.16" FillBehavior="Stop"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </MultiDataTrigger.ExitActions>
+                            </MultiDataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+        </Style>
+        <Style x:Key="NavButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Foreground" Value="#D6DCE8"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="14,11"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Background" Value="#343B60"/>
+                    <Setter Property="BorderBrush" Value="#54577E"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Foreground" Value="#A43242"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="9,7"/>
+            <Setter Property="MinHeight" Value="34"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Padding" Value="7,5"/>
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        </Style>
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Padding" Value="3"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        </Style>
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Padding" Value="16,9"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="20"/>
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#48576A"/>
+            <Setter Property="Margin" Value="0,10,0,5"/>
+        </Style>
+        <Style x:Key="StudioIcon" TargetType="Border">
+            <Setter Property="Background" Value="#EEECFF"/>
+            <Setter Property="TextElement.Foreground" Value="#584DBD"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Type}" Value="database">
+                    <Setter Property="Background" Value="#DFF4EF"/>
+                    <Setter Property="TextElement.Foreground" Value="#22695F"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Type}" Value="calendar">
+                    <Setter Property="Background" Value="#FCEAD9"/>
+                    <Setter Property="TextElement.Foreground" Value="#914820"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="StudioStatusBadge" TargetType="Border">
+            <Setter Property="Background" Value="#EEF0F5"/>
+            <Setter Property="TextElement.Foreground" Value="#49566C"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                    <Setter Property="Background" Value="#E1F5EA"/>
+                    <Setter Property="TextElement.Foreground" Value="#276447"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+        </Style>
+
+        <Style x:Key="Page" TargetType="UserControl">
+            <Setter Property="Margin" Value="30,24,30,32"/>
+            <Style.Triggers>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding DataContext.ReduceMotion, RelativeSource={RelativeSource AncestorType=Window}}" Value="False"/>
+                        <Condition Binding="{Binding Source={x:Static SystemParameters.ClientAreaAnimation}}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <MultiDataTrigger.EnterActions>
+                        <BeginStoryboard Name="PageFade"><Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.75" To="1" Duration="0:0:0.16" FillBehavior="Stop"/>
+                        </Storyboard></BeginStoryboard>
+                    </MultiDataTrigger.EnterActions>
+                    <MultiDataTrigger.ExitActions><RemoveStoryboard BeginStoryboardName="PageFade"/></MultiDataTrigger.ExitActions>
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+        <DataTemplate DataType="{x:Type vm:OverviewViewModel}"><ScrollViewer VerticalScrollBarVisibility="Auto"><views:OverviewView Style="{StaticResource Page}"/></ScrollViewer></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:EmailStudioViewModel}"><ScrollViewer VerticalScrollBarVisibility="Auto"><views:EmailStudioView Style="{StaticResource Page}"/></ScrollViewer></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DatabaseStudioViewModel}"><ScrollViewer VerticalScrollBarVisibility="Auto"><views:DatabaseStudioView Style="{StaticResource Page}"/></ScrollViewer></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CalendarStudioViewModel}"><ScrollViewer VerticalScrollBarVisibility="Auto"><views:CalendarStudioView Style="{StaticResource Page}"/></ScrollViewer></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:InspectorViewModel}"><ScrollViewer VerticalScrollBarVisibility="Auto"><views:InspectorView Style="{StaticResource Page}"/></ScrollViewer></DataTemplate>
+    </Application.Resources>
+</Application>

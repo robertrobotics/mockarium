@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Superseded by the .NET 11 desktop architecture in
+[docs/ARCHITECTURE.md](../ARCHITECTURE.md). Kept for historical context.
 
 ## Context
 

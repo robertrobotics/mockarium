@@ -2,109 +2,101 @@
 
 **Build the world. Test the agent.**
 
-Mockarium is a local-first desktop application for testing external AI agents against simulated MCP systems. It provides mock services and shows the real tool calls agents make; it is not an AI agent builder.
+Mockarium is a local-first desktop application for testing AI agents against simulated MCP services. It provides realistic Email, Database, and Calendar workspaces and shows the real tool calls agents make; it is not an AI agent builder.
 
-## First milestone
+![Mockarium workspace overview showing the Email, Database, and Calendar studios.](docs/media/overview.png)
 
-The initial release provides a functional vertical slice:
+## Desktop applications
 
-- Local workspaces and isolated, customizable email fixtures.
-- A visual Database Studio with an editable, relational client-pipeline model and sample records.
-- A stateful Email MCP server with search, retrieval, send, reply, draft, folders, and contacts tools.
-- Email Studio for customizing mailbox identity, messages, folders, and contacts used by those tools.
-- A stateful Database MCP server with schema discovery and validated record tools; it never exposes raw SQL.
-- Calendar Studio: a drag-and-drop week planner with people, time zones, working hours, invitations, and a simulated clock, backed by a Calendar MCP server.
-- Localhost MCP Streamable HTTP and a live inspector for actual requests and results.
-- Resettable mock data and persistent execution history.
+The application targets **.NET 11 only**:
 
-File-storage connectors, a custom mock-server builder, and scenario automation are not part of this milestone.
+- **Windows:** native WPF client.
+- **macOS and Linux:** Avalonia client.
 
-## Development
+Both clients use the same MVVM layer, domain services, SQLite store, and MCP runtime. MCP listeners bind to loopback; the simulated services do not connect to real email, calendars, or databases.
 
-Requirements: Node.js 22.12 or newer and pnpm 12.
+## Run from source
 
-```sh
-pnpm install
-pnpm dev
-```
+Install the .NET 11 SDK. Open [Mockarium.slnx](Mockarium.slnx) in your IDE,
+or run the following commands from the repository root.
 
-Quality checks:
+On macOS and Linux, run the Avalonia client:
 
 ```sh
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm build
+dotnet run --project src/Mockarium.Desktop
 ```
 
-Workspace data is stored in the operating system's application data directory. It is not checked into the repository.
+On Windows, run the WPF client:
 
-## First use
+```powershell
+dotnet run --project src/Mockarium.Wpf
+```
 
-1. Launch the app with `pnpm dev`.
-2. Create a workspace, open **Database Studio**, and choose **Create my starter database**.
-3. Edit the Companies, Contacts, and Deals tables or try the sample records. Save model changes before starting the server.
-4. Start the Database server and copy its endpoint or client configuration into an MCP client.
-5. Ask the agent to inspect the schema, find a record, and create or update a simulated record. For example: “Use the Mockarium database tools to find the Northstar Labs company and move its Spring launch program deal to Negotiation.”
-6. Watch the actual tool inputs and results in Live Inspector and see record changes in the studio. **Restore starter** resets the schema and sample data while keeping execution history.
+## First workspace
 
-Open **Email Studio** to create and customize the mailbox identity, messages, folders, and contacts your agent can explore. Start the Email server there and copy its endpoint or client configuration to your MCP client; use Live Inspector to observe tool calls. The simulated send/reply/draft tools use the saved mailbox identity and never contact a real email provider. **Restore starter mailbox** replaces the mailbox data while keeping execution history.
+Enter a name on the overview and press **Enter** to create your workspace.
+Open a studio to edit its starter data, or choose **Start server** to create
+the starter data and start listening in one step. Copy the configuration to
+your MCP client, then use **Live Inspector** to see its requests and results.
+Nothing connects to a real service. A **Reduce motion** preference is
+available in the sidebar.
 
-Open **Calendar Studio** and choose **Create my starter calendar** to get a realistic week for Alex Morgan with colleagues in New York, Kolkata, and Los Angeles. Drag meetings to reschedule them, drag the bottom edge to resize, click an empty slot to add one, and set the simulated “now” your agent sees. Start the Calendar server, copy its configuration into your MCP client, and try: “Find a one-hour slot with Jordan this week, schedule a kickoff, and accept Priya's invitation.” Changes made by the agent glow in the week view and appear in the Agenda. No real invitations are ever sent.
+## Release builds
 
-## Connecting an MCP client
+The GitHub release workflow is configured to create self-contained application
+archives for Windows x64 (WPF), macOS arm64 and x64 (Avalonia), and Linux x64
+and arm64 (Avalonia). These archives include the .NET runtime; they are not
+installers. The macOS archives contain a `Mockarium.app` bundle with an icon.
+The workflow has not yet been validated through an actual release. macOS
+bundles are not signed or notarized for distribution, so Gatekeeper may block
+launch. Native installers and release validation on each operating system
+remain future work.
 
-Each studio includes a compact, expandable **Agent toolkit**. Choose **Show tools**
-to search tools, expand a card to
-see required and optional inputs and limits, or copy the tool name and full JSON
-input schema. This catalog comes from the actual MCP registrations and works
-even with the server stopped. Tools share one MCP endpoint; they are not
-separate HTTP URLs. Customize studio data and identity to change their results;
-tool names and input definitions are currently built in, not editable.
-
-In Calendar Studio, use **Calendar setup** in the banner or sidebar to edit the
-owner, simulated clock, working hours, and people. Switch back to **Agenda** for
-invitations; creating or selecting an event opens its editor automatically.
-
-All studios share the same top-level layout: server status and Start/Stop
-controls beside the studio title, a visible **Streamable HTTP** transport label,
-a **Design** banner with a setup shortcut, and the expandable **Agent toolkit**.
-Running servers show their address and copy actions beside the title. Open
-**Connection** there for the full endpoint, client configuration, Live Inspector,
-and restore controls. Setup shortcuts jump to each studio's design controls.
-The Overview shows matching cards for all three studios, each with a clear
-**Running** or **Not running** status, **Start/Stop server**, and **Open studio**
-buttons. Starting a studio for the first time creates its starter data. Endpoints
-and settings are available inside the individual studios; mailbox content and
-execution details stay in Email Studio and Live Inspector.
-
-Use the **Start** button beside each studio's title, then copy its displayed endpoint and client configuration. Database model changes must be saved before starting or stopping its server. The servers use MCP Streamable HTTP on loopback. The Database tools are `database_schema`, `database_list_records`, `database_get_record`, `database_create_record`, `database_update_record`, and `database_delete_record`. The Calendar tools are `calendar_get_context`, `calendar_list_people`, `calendar_list_events`, `calendar_get_event`, `calendar_find_availability`, `calendar_create_event`, `calendar_update_event`, `calendar_cancel_event`, and `calendar_respond_to_invitation`. Protocol-level tool listing and calls have been verified with MCP Inspector CLI 2.15.0; this is not a claim of compatibility with an untested agent host. To inspect a running server from a terminal:
+Run tests and build both clients:
 
 ```sh
-pnpm dlx @modelcontextprotocol/inspector@2.15.0 --cli \
-  --server-url http://127.0.0.1:<port>/mcp \
-  --transport http \
-  --method tools/list
+dotnet build -c Release
+dotnet test -c Release --no-build
 ```
 
-Replace the example endpoint with the URL shown in Mockarium. In the Inspector UI, choose Streamable HTTP and enter the same URL.
+## Studios
 
-### Clearing Live Inspector
+### Email Studio
 
-Use **Clear view** to hide captured calls for the current workspace and reset
-the selection, filters, and counters. New calls continue to appear unless live
-capture is paused. Clearing is local to the current app session and survives
-studio navigation and pause/resume; it does not delete saved execution history.
-**Export** still includes the saved history. Reloading the app shows that history again.
+Customize mailbox identity, messages, folders, and contacts. Simulated send,
+reply, and draft tools never contact a real email provider.
 
-## Current limitations
+### Database Studio
 
-The initial milestone does not include stdio transport, agent launching, File Storage, custom mock-server creation, or scenario automation. These are future roadmap items. The current MCP endpoints are local-only; MCP Inspector verification is protocol-level and does not imply support for every client host.
+Edit a relational model and sample records. The MCP tools expose validated
+record operations, not raw SQL. Save model changes before starting or stopping
+the database server.
 
-## Architecture
+### Calendar Studio
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/PRODUCT.md](docs/PRODUCT.md), and [docs/ROADMAP.md](docs/ROADMAP.md).
+Plan a week with draggable events, people in different time zones, working
+hours, invitations, and a simulated clock. No real invitations are sent.
 
-## Contributing and security
+## Data and migration
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md). Changes are licensed under Apache-2.0.
+The .NET application stores its SQLite database under
+`Environment.SpecialFolder.ApplicationData/mockarium/mockarium.sqlite`. If only
+an existing database in the alternate `Mockarium` directory is found, the app
+reuses it. If both directories contain different databases on a case-sensitive
+filesystem, startup stops rather than silently selecting one: back up both and
+move the unwanted database elsewhere before restarting. Close all Mockarium
+instances before backing up or moving the database, and include any associated
+`-wal` and `-shm` files. A compatibility test opens a database generated by the
+Electron store and verifies data from all three studios and execution history.
+Exact packaged Electron user-data paths have not yet been verified on every OS,
+so back up an existing database before the first .NET launch.
+
+## Repository layout
+
+The desktop clients and shared libraries are in [src](src); the integration
+and headless UI tests are in [tests](tests). The solution builds and runs
+without a JavaScript toolchain.
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
+[docs/PRODUCT.md](docs/PRODUCT.md), and [docs/ROADMAP.md](docs/ROADMAP.md).
+Contributor instructions are in [CONTRIBUTING.md](CONTRIBUTING.md).

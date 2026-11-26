@@ -1,8 +1,11 @@
-node_modules/
-out/
-dist/
-release/
-coverage/
+bin/
+obj/
+artifacts/
+TestResults/
+.vs/
+.idea/
+*.user
+*.suo
 .DS_Store
 *.sqlite
 *.sqlite-shm
